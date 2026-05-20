@@ -530,6 +530,33 @@ function footer(p, n, total, cat, brand) {
   </div>`;
 }
 
+const COVER_KEYWORDS = {
+  invest:'chart,growth,abstract,gold', insurance:'paper,document,desk,minimal',
+  cashflow:'coffee,desk,calm,money', retire:'sunset,horizon,nature',
+  money:'money,bills,minimal', career:'office,city,architecture',
+  family:'home,window,light', health:'leaf,plant,calm,green',
+  default:'abstract,texture,marble,minimal',
+};
+function detectCoverTopic(text) {
+  if (/投資|ETF|股票|配息|報酬|複利|股市|基金/.test(text)) return 'invest';
+  if (/保險|保障|醫療|住院|意外|理賠|保單/.test(text)) return 'insurance';
+  if (/儲蓄|存錢|現金流|月薪|薪水|定存|流向|月光/.test(text)) return 'cashflow';
+  if (/退休|未來|長期|時間|老後/.test(text)) return 'retire';
+  if (/工作|職涯|跳槽|升遷|加薪|職場/.test(text)) return 'career';
+  if (/家庭|結婚|育兒|父母|孩子/.test(text)) return 'family';
+  if (/健康|疾病|住院|生病/.test(text)) return 'health';
+  if (/錢|財富|金融|理財/.test(text)) return 'money';
+  return 'default';
+}
+function resolveCoverImage(d) {
+  if (d.image && /^https?:\/\//.test(d.image)) return d.image;
+  const text = (d.titleLines||[]).join(' ') + ' ' + (d.bodyLines||[]).join(' ');
+  const topic = d.imageKeyword || detectCoverTopic(text);
+  const tags = COVER_KEYWORDS[topic] || topic;
+  const seed = Math.abs(text.split('').reduce((h,c)=>(h*31+c.charCodeAt(0))|0,7)) % 100000;
+  return `https://source.unsplash.com/1080x1350/?${encodeURIComponent(tags)}&sig=${seed}`;
+}
+
 function S1(d, theme, ctx, brand) {
   const p = palette(theme), dk = p.dark;
   const goldAccent = dk ? '#F0CC74' : '#8B6A1A';
@@ -545,7 +572,7 @@ function S1(d, theme, ctx, brand) {
   const bodyC = dk ? 'rgba(255,255,255,.78)' : 'rgba(28,28,30,.62)';
   const metaC = dk ? 'rgba(255,255,255,.55)' : 'rgba(28,28,30,.50)';
   const thinC = dk ? 'rgba(255,255,255,.12)' : 'rgba(28,28,30,.10)';
-  const img = 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1080&q=80';
+  const img = resolveCoverImage(d);
   const rgb = theme==='ink'?'26,39,68':theme==='noir'?'14,14,18':theme==='paper'?'250,250,248':'245,241,232';
   const grad = dk
     ? `linear-gradient(to bottom,rgba(${rgb},.30),rgba(${rgb},.05) 35%,rgba(${rgb},.45) 70%,rgba(${rgb},.88))`
