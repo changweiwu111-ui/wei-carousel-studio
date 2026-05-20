@@ -532,31 +532,13 @@ function footer(p, n, total, cat, brand) {
   </div>`;
 }
 
-const COVER_KEYWORDS = {
-  invest:'chart,growth,abstract,gold', insurance:'paper,document,desk,minimal',
-  cashflow:'coffee,desk,calm,money', retire:'sunset,horizon,nature',
-  money:'money,bills,minimal', career:'office,city,architecture',
-  family:'home,window,light', health:'leaf,plant,calm,green',
-  default:'abstract,texture,marble,minimal',
-};
-function detectCoverTopic(text) {
-  if (/投資|ETF|股票|配息|報酬|複利|股市|基金/.test(text)) return 'invest';
-  if (/保險|保障|醫療|住院|意外|理賠|保單/.test(text)) return 'insurance';
-  if (/儲蓄|存錢|現金流|月薪|薪水|定存|流向|月光/.test(text)) return 'cashflow';
-  if (/退休|未來|長期|時間|老後/.test(text)) return 'retire';
-  if (/工作|職涯|跳槽|升遷|加薪|職場/.test(text)) return 'career';
-  if (/家庭|結婚|育兒|父母|孩子/.test(text)) return 'family';
-  if (/健康|疾病|住院|生病/.test(text)) return 'health';
-  if (/錢|財富|金融|理財/.test(text)) return 'money';
-  return 'default';
-}
+const COVER_POOL = ['1486325212027-8081e485255e','1554224155-6726b3ff858f','1517245386807-bb43f82c33c4','1554224155-cfa08c2a758f','1554224155-1696413565d3','1554260570-9140fd3b7614','1542621334-a254cf47733d','1518186285589-2f7649de83e0','1554224154-26032ffc0d07','1454165804606-c3d57bc86b40','1517842645767-c639042777db','1497032628192-86f99bcd76bc','1606761568499-6d2451b23c66','1506905925346-21bda4d32df4','1480714378408-67cf0d13bc1b','1495020689067-958852a7765e','1556761175-5973dc0f32e7','1559526324-4b87b5e36e44','1556761175-b413da4baf72','1557804506-669a67965ba0'];
 function resolveCoverImage(d) {
   if (d.image && /^https?:\/\//.test(d.image)) return d.image;
-  const text = (d.titleLines||[]).join(' ') + ' ' + (d.bodyLines||[]).join(' ');
-  const topic = d.imageKeyword || detectCoverTopic(text);
-  const tags = COVER_KEYWORDS[topic] || topic;
-  const seed = Math.abs(text.split('').reduce((h,c)=>(h*31+c.charCodeAt(0))|0,7)) % 100000;
-  return `https://source.unsplash.com/1080x1350/?${encodeURIComponent(tags)}&sig=${seed}`;
+  const text = (d.titleLines||[]).join('') + (d.bodyLines||[]).join('');
+  const seed = Math.abs(text.split('').reduce((h,c)=>(h*31+c.charCodeAt(0))|0,7));
+  const id = COVER_POOL[seed % COVER_POOL.length];
+  return `https://images.unsplash.com/photo-${id}?w=1080&q=80`;
 }
 
 function S1(d, theme, ctx, brand) {
