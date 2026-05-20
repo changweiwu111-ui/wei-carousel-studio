@@ -955,11 +955,32 @@ let cur=0, activeTab=0; const total=7;
 function goto(i){const s=document.querySelectorAll('.sl'),d=document.querySelectorAll('.dot'),t=document.querySelectorAll('.tab');s[cur].classList.remove('is-active');d[cur].classList.remove('is-active');t[cur].classList.remove('is-active');cur=i;s[i].classList.add('is-active');d[i].classList.add('is-active');t[i].classList.add('is-active');}
 function prev(){goto((cur-1+total)%total);}
 function next(){goto((cur+1)%total);}
-function tab(i){document.querySelectorAll('.panel-tab').forEach((b,j)=>b.classList.toggle('is-active',j===i));document.querySelectorAll('.panel-body').forEach((p,j)=>p.classList.toggle('is-active',j===i));activeTab=i;}
+function refreshCaption(){
+  const sls=document.querySelectorAll('.sl');
+  if(!sls.length)return;
+  const grab=(sl,sel)=>{const el=sl.querySelector(sel);return el?el.innerText.trim():'';};
+  const s1Title=[...sls[0].querySelectorAll('.cover-v2-title > div')].map(d=>d.innerText.trim()).filter(Boolean).join(' ');
+  const s2Sub=grab(sls[1],'.spread-deck');
+  const s3Title=grab(sls[2],'.spread-title').replace(/\n/g,' ');
+  const kw=grab(sls[6],'.end-keyword .serif');
+  const tl=grab(sls[6],'.end-tool-name');
+  const ha=document.querySelector('.wm-handle')?.innerText.trim()||'';
+  const p0=document.getElementById('p0');
+  if(!p0)return;
+  const oldLines=p0.innerText.split('\n');
+  const hashLine=oldLines.find(l=>l.trim().startsWith('#'))||'#理財規劃 #個人理財 #財務自由';
+  p0.innerText=s1Title+'\n\n'+s2Sub+'\n\n'+s3Title+'\n\n底下留言「'+kw+'」\n我把'+tl+'傳給你\n\n'+ha+'\n'+hashLine;
+}
+function tab(i){
+  document.querySelectorAll('.panel-tab').forEach((b,j)=>b.classList.toggle('is-active',j===i));
+  document.querySelectorAll('.panel-body').forEach((p,j)=>p.classList.toggle('is-active',j===i));
+  activeTab=i;
+  if(i===0)refreshCaption();
+}
 function copyPanel(){const b=document.querySelectorAll('.panel-body')[activeTab];navigator.clipboard.writeText(b.innerText).then(()=>{const btn=event.target;const t=btn.textContent;btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent=t,1500);});}
 async function exportCurrent(){const sl=document.querySelectorAll('.sl')[cur];document.body.classList.add('exporting');const c=await html2canvas(sl,{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='韋總裁_slide_'+String(cur+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();}
 async function exportAll(){const btn=event.target;const orig=btn.textContent;const sls=document.querySelectorAll('.sl');for(let i=0;i<sls.length;i++){btn.textContent='EXPORTING '+(i+1)+'/'+sls.length;goto(i);await new Promise(r=>setTimeout(r,400));document.body.classList.add('exporting');const c=await html2canvas(sls[i],{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='韋總裁_slide_'+String(i+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();await new Promise(r=>setTimeout(r,200));}btn.textContent='DONE ✓';setTimeout(()=>btn.textContent=orig,1500);}
-document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.children.length===0&&el.innerText.trim()&&!el.classList.contains('wm-name')&&!el.classList.contains('wm-handle'))el.setAttribute('contenteditable','true');});
+document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.children.length===0&&el.innerText.trim()&&!el.classList.contains('wm-name')&&!el.classList.contains('wm-handle')){el.setAttribute('contenteditable','true');el.addEventListener('blur',refreshCaption);}});
 document.addEventListener('keydown',ev=>{if(ev.target.isContentEditable)return;if(ev.key==='ArrowLeft')prev();if(ev.key==='ArrowRight')next();if(ev.key==='f'||ev.key==='F'){if(!document.fullscreenElement)document.getElementById('stage').requestFullscreen();else document.exitFullscreen();}});
 let tx=0;const stage=document.getElementById('stage');stage.addEventListener('touchstart',ev=>tx=ev.touches[0].clientX,{passive:true});stage.addEventListener('touchend',ev=>{const d=ev.changedTouches[0].clientX-tx;if(Math.abs(d)>40)d<0?next():prev();});
 <\/script>
@@ -1055,19 +1076,220 @@ function loadSample() {
   showToast('範例已載入');
 }
 
+// ─── 外部 JSON 自動轉換（slides[] 格式 → 引擎格式）─────────────────────────
+function stripSignature(body) {
+  // 去掉 「阿夢 · @yume__o.07」這種收尾署名
+  return String(body || '').replace(/\n+[^\n]*[·・]\s*@[\w._]+\s*$/u, '').trim();
+}
+function splitTitle(s, maxLines = 2) {
+  // 把長句拆成 2 行
+  s = String(s||'').trim();
+  // 優先在標點處斷
+  const punct = ['，', '、', '：', '。', '；', ' '];
+  for (const p of punct) {
+    const idx = s.indexOf(p);
+    if (idx > 4 && idx < s.length - 2) {
+      return s.slice(0, idx) + '\n' + s.slice(idx + 1).trim();
+    }
+  }
+  // 沒標點就對半切
+  if (s.length > 10) {
+    const mid = Math.floor(s.length / 2);
+    return s.slice(0, mid) + '\n' + s.slice(mid);
+  }
+  return s;
+}
+function stripHeader(h) {
+  // 去掉 【01/07｜封面】 這種前綴
+  return String(h || '').replace(/^【[^】]*】\s*/u, '').trim();
+}
+function stripEmoji(s) {
+  return String(s || '').replace(/^[\p{Emoji}☀-⟿]+\s*/u, '').trim();
+}
+
+function convertExternalFormat(j) {
+  // 不是 slides[] 格式就直接返回
+  if (!j || !Array.isArray(j.slides)) return j;
+
+  const out = {
+    category: '',
+    brand: {
+      name: j.creator || '韋總裁',
+      handle: j.account || '@changw_0331',
+    },
+    _suggested_keyword: j.trigger_word || '',
+    _suggested_tool: '',
+  };
+
+  // 預先建立空殼
+  for (let i = 1; i <= 7; i++) out['s' + i] = {};
+
+  for (const s of j.slides) {
+    const num = s.slide;
+    const header = stripHeader(s.header || '');
+    const body = stripSignature(s.body);
+
+    if (num === 1) {
+      const lines = body.split('\n').filter(l => l.trim());
+      // titleLines 取 body 前 2 行 + header 當第 3 行
+      const t1 = lines[0] || header;
+      const t2 = lines[1] || '';
+      const t3 = lines[2] && !lines[2].includes('，') ? lines[2] : header;
+      const rest = lines.slice(t3 === header ? 2 : 3);
+      out.s1 = {
+        meta: '',
+        titleLines: [t1, t2, t3].filter(Boolean).slice(0, 3),
+        accentLineIndex: 1,
+        bodyLines: rest.slice(0, 3),
+      };
+    } else if (num === 2) {
+      const blocks = body.split(/\n\s*\n/).filter(b => b.trim());
+      const cards = blocks.slice(0, 3).map(b => {
+        const lines = b.split('\n').filter(l => l.trim());
+        const q = (lines[0] || '').replace(/^[→\-•]\s*/, '').trim();
+        const a = (lines[1] || '').trim();
+        return { q, a };
+      });
+      out.s2 = {
+        title: splitTitle(header),
+        subtitle: '',
+        cards: cards.length ? cards : [{q:'',a:''},{q:'',a:''},{q:'',a:''}],
+      };
+    } else if (num === 3) {
+      const blocks = body.split(/\n\s*\n/).filter(b => b.trim());
+      const pairs = blocks.slice(0, 2).map(b => {
+        const lines = b.split('\n').filter(l => l.trim());
+        const x = (lines.find(l => /^[✕✖×x]/i.test(l)) || lines[0] || '').replace(/^[✕✖×x]\s*/i, '').trim();
+        const o = (lines.find(l => /^[✓◎○]/.test(l)) || lines[1] || '').replace(/^[✓◎○]\s*/, '').trim();
+        return { x, o };
+      });
+      out.s3 = {
+        title: splitTitle(header),
+        subtitle: '',
+        pairs: pairs.length ? pairs : [{x:'',o:''},{x:'',o:''}],
+      };
+    } else if (num === 4) {
+      const blocks = body.split(/\n\s*\n/).filter(b => b.trim());
+      const items = blocks.slice(0, 3).map(b => {
+        const lines = b.split('\n').filter(l => l.trim());
+        const t = (lines[0] || '').replace(/^\d+[\.\s]*/, '').trim();
+        const sText = (lines[1] || '').trim();
+        return { t, s: sText, note: '' };
+      });
+      const sub = splitTitle(header).split('\n');
+      out.s4 = {
+        title: sub[0] || '行動三步',
+        subtitleLines: sub.length > 1 ? [sub[1]] : [],
+        items: items.length ? items : [{t:'',s:'',note:''},{t:'',s:'',note:''},{t:'',s:'',note:''}],
+      };
+    } else if (num === 5) {
+      // S5 太結構化，這裡盡量保留原內容
+      const paras = body.split(/\n\s*\n/).filter(p => p.trim());
+      // 第一段：scenario / source
+      const firstLines = (paras[0] || '').split('\n');
+      const scenario = firstLines[0] || header;
+      const source = firstLines[1] || '';
+      // 第二段：對比 3 行
+      const compareLines = (paras[1] || '').split('\n').filter(l => l.trim());
+      const rows = [];
+      compareLines.slice(0, 3).forEach((l, i) => {
+        const m = l.match(/^(.+?)\s*→\s*(.+)$/) || [null, l, ''];
+        rows.push({
+          label: (m[1] || '').trim(),
+          val: (m[2] || '').trim(),
+          type: i === 0 ? 'strike' : i === 1 ? 'gold' : 'dim',
+        });
+      });
+      // 第三段：quote
+      const quote = (paras[2] || '').replace(/[「」"]/g, '').trim();
+      // bigNumber 從 gold row 的 val 抓數字
+      const gold = rows.find(r => r.type === 'gold');
+      const numMatch = gold ? gold.val.match(/[\d,]+/) : null;
+      const bigNumber = numMatch ? numMatch[0] : (gold ? gold.val : '');
+      out.s5 = {
+        scenario,
+        tag: 'BY THE NUMBERS',
+        bigNumber: bigNumber || '',
+        unit: '',
+        source,
+        rows: rows.length === 3 ? rows : [
+          {label:'',val:'',type:'strike'},
+          {label:'',val:'',type:'gold'},
+          {label:'',val:'',type:'dim'},
+        ],
+        quote: quote ? '「' + quote + '」' : '',
+      };
+    } else if (num === 6) {
+      const blocks = body.split(/\n\s*\n/).filter(b => b.trim());
+      const items = blocks.slice(0, 3).map(b => {
+        const lines = b.split('\n').filter(l => l.trim());
+        const t = stripEmoji(lines[0] || '');
+        const sText = (lines[1] || '').trim();
+        return { t, s: sText };
+      });
+      out.s6 = {
+        sectionLabel: '',
+        title: splitTitle(header.replace(/[「」"]/g, '')),
+        items: items.length ? items : [{t:'',s:''},{t:'',s:''},{t:'',s:''}],
+      };
+    } else if (num === 7) {
+      // 抓工具名（第一個列表項）
+      const lines = body.split('\n').filter(l => l.trim());
+      let tool = '';
+      const toolLine = lines.find(l => /^[📋📌📊💼🎯]/.test(l));
+      if (toolLine) tool = stripEmoji(toolLine);
+      // 抓副引言（第二個列表項或 ↓ 留言句）
+      let ctaSub = '';
+      const subLine = lines.find(l => /^[💬💡📩]/.test(l) && l !== toolLine);
+      if (subLine) ctaSub = stripEmoji(subLine);
+      else ctaSub = '我整理好的東西直接傳給你';
+      out._suggested_tool = tool;
+      out.s7 = {
+        ctaSub,
+        toolSub: '',
+      };
+    }
+  }
+
+  return out;
+}
+
 function uploadFile(ev) {
   const file = ev.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    $raw.value = e.target.result;
+    let raw;
     try {
-      JSON.parse(e.target.result);
-      generate();
-      showToast('JSON 已載入');
+      raw = JSON.parse(e.target.result);
     } catch (err) {
       showToast('JSON 格式錯誤：' + err.message, true);
+      return;
     }
+
+    // 自動偵測格式並轉換
+    let converted = raw;
+    let isExternal = false;
+    if (Array.isArray(raw.slides)) {
+      converted = convertExternalFormat(raw);
+      isExternal = true;
+    }
+
+    // 套用品牌
+    if (converted.brand) {
+      document.getElementById('brand-name').value = converted.brand.name || '韋總裁';
+      document.getElementById('brand-handle').value = converted.brand.handle || '@changw_0331';
+    }
+    // 套用建議的 keyword / tool
+    if (converted._suggested_keyword) $keyword.value = converted._suggested_keyword;
+    if (converted._suggested_tool) $tool.value = converted._suggested_tool;
+    // 清除 _ 開頭的暫存欄
+    delete converted._suggested_keyword;
+    delete converted._suggested_tool;
+
+    $raw.value = JSON.stringify(converted, null, 2);
+    generate();
+    showToast(isExternal ? '外部格式已自動轉換並載入' : 'JSON 已載入');
   };
   reader.readAsText(file);
   ev.target.value = '';
