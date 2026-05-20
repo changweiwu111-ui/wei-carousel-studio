@@ -350,9 +350,145 @@
     .studio { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
     .sidebar { max-height: 50vh; }
   }
+
+  /* ─── Onboarding ─── */
+  .onboard-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 20, 38, 0.92);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .onboard-overlay.is-hidden { display: none; }
+  .onboard-card {
+    background: var(--panel);
+    border: .5px solid var(--accent);
+    border-radius: 6px;
+    padding: 40px 44px;
+    max-width: 560px;
+    width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  }
+  .onboard-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 28px; font-weight: 900;
+    margin-bottom: 6px;
+  }
+  .onboard-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .24em;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+  .onboard-body {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--mute);
+    font-family: 'Noto Serif TC', serif;
+    margin-bottom: 24px;
+  }
+  .onboard-body strong { color: var(--text); font-weight: 700; }
+  .onboard-step {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 12px 0;
+    border-top: .5px solid var(--rule);
+  }
+  .onboard-step:first-of-type { border-top: none; }
+  .onboard-step-num {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1;
+    flex-shrink: 0;
+    min-width: 26px;
+  }
+  .onboard-step-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--mute);
+    font-family: 'Inter', 'Noto Serif TC', sans-serif;
+  }
+  .onboard-step-text strong { color: var(--text); }
+  .onboard-step-text a {
+    color: var(--accent); text-decoration: underline;
+  }
+  .onboard-actions {
+    margin-top: 28px;
+    display: flex; gap: 10px;
+  }
+  .onboard-btn-primary {
+    flex: 1;
+    padding: 14px 22px;
+    background: var(--accent);
+    color: var(--panel);
+    border: none;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .18em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .onboard-btn-primary:hover { background: #F0D480; }
+  .onboard-btn-ghost {
+    padding: 14px 22px;
+    background: transparent;
+    color: var(--mute);
+    border: .5px solid var(--rule);
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .16em;
+    cursor: pointer;
+  }
+  .onboard-btn-ghost:hover { color: var(--accent); border-color: var(--accent); }
+
+  .settings-section { padding: 4px 0; }
 </style>
 </head>
 <body>
+
+<!-- Onboarding for new users -->
+<div class="onboard-overlay is-hidden" id="onboard">
+  <div class="onboard-card">
+    <div class="onboard-title">韋總裁輪播生成器</div>
+    <div class="onboard-sub">EDITORIAL STUDIO ・ v3.2</div>
+
+    <div class="onboard-body">
+      把你寫好的<strong>整段貼文</strong>、<strong>一句話主題</strong>、或<strong>條列重點</strong>貼進來，<br>
+      AI 自動寫成 7 張雜誌編輯風格的 IG 輪播，可即時編輯、匯出 PNG。
+    </div>
+
+    <div class="onboard-step">
+      <div class="onboard-step-num">01</div>
+      <div class="onboard-step-text">
+        <strong>填左下「個人品牌」</strong>：你的名字 + IG handle（會出現在每張底下）
+      </div>
+    </div>
+    <div class="onboard-step">
+      <div class="onboard-step-num">02</div>
+      <div class="onboard-step-text">
+        <strong>申請免費 Gemini Key</strong>（推薦，1500 次/天免費）：<a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a><br>
+        拿到 Key 後點上方齒輪 ⚙ 貼進去。<span style="opacity:.6">不申請也能用基本解析。</span>
+      </div>
+    </div>
+    <div class="onboard-step">
+      <div class="onboard-step-num">03</div>
+      <div class="onboard-step-text">
+        <strong>貼文案 → 按「生成輪播」</strong>。預覽中點任何文字可即時編輯。最後按 EXPORT PNG 匯出。
+      </div>
+    </div>
+
+    <div class="onboard-actions">
+      <button class="onboard-btn-primary" onclick="finishOnboard()">開始使用</button>
+      <button class="onboard-btn-ghost" onclick="openGeminiPage()">先申請 Key</button>
+    </div>
+  </div>
+</div>
 
 <div class="studio">
   <aside class="sidebar">
@@ -364,34 +500,62 @@
     <!-- AI Generator (主要入口) -->
     <div class="section ai-section">
       <div class="section-label">
-        <span>AI 生成 ・ TOPIC → 完整輪播</span>
-        <button class="ai-gear" onclick="toggleAISettings()" title="設定 API Key">⚙</button>
+        <span>內容 ・ 貼什麼都可以</span>
+        <button class="ai-gear" onclick="toggleAISettings()" title="AI 設定">⚙</button>
       </div>
       <textarea class="textarea ai-topic" id="topic-input" spellcheck="false"
-        placeholder="一句話主題、條列重點、整段草稿都可以。
+        placeholder="把以下任一種貼到這裡：
 
-💡 最省錢的方式：把這段文字直接複製到 Claude 對話框
-   跟他說「幫我做輪播」，他會免費寫好 JSON 給你
-   再回到這裡點「上傳 JSON」載入即可。
+✓ 整段貼文文案（不用排版，直接貼）
+✓ 一句話主題（如「年輕人該不該買儲蓄險」）
+✓ 條列式重點筆記
+✓ JSON 檔內容（任何格式都吃）
 
-下面這顆 AI 鈕是給「不想開 Claude 對話框」的人用的
-（要自己的 Anthropic API Key，每張約 0.01-0.03 美金）"></textarea>
+按下方「生成輪播」會自動判斷 → AI 寫好 → 即時預覽"></textarea>
 
       <div id="ai-settings" class="ai-settings is-hidden">
-        <label class="ftiny">ANTHROPIC API KEY（只存在你瀏覽器，不會上傳）</label>
-        <input class="input" type="password" id="api-key-input"
-          placeholder="sk-ant-...">
-        <div style="display:flex;gap:6px;margin-top:8px">
-          <button class="src-btn" onclick="saveAPIKey()" style="flex:1">儲存 Key</button>
-          <button class="src-btn" onclick="clearAPIKey()" style="flex:1">清除</button>
+        <div class="settings-section">
+          <label class="ftiny">⭐ Gemini API Key（推薦 ・ Google 免費 1500 次/天）</label>
+          <input class="input" type="password" id="gemini-key-input"
+            placeholder="AIzaSy...">
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="src-btn" onclick="saveGeminiKey()" style="flex:1">儲存</button>
+            <button class="src-btn" onclick="clearGeminiKey()" style="flex:1">清除</button>
+          </div>
+          <div class="api-hint">
+            從 <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> 取得（1 分鐘，免信用卡）。
+          </div>
         </div>
-        <div class="api-hint">
-          從 <code>console.anthropic.com</code> 取得。每張輪播大約 0.01-0.03 美金。
+
+        <div class="settings-section" style="margin-top:14px;border-top:.5px solid var(--rule);padding-top:14px">
+          <label class="ftiny">Anthropic API Key（付費 ・ 品質最高）</label>
+          <input class="input" type="password" id="api-key-input"
+            placeholder="sk-ant-...">
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="src-btn" onclick="saveAPIKey()" style="flex:1">儲存</button>
+            <button class="src-btn" onclick="clearAPIKey()" style="flex:1">清除</button>
+          </div>
+          <div class="api-hint">
+            從 <code>console.anthropic.com</code> 取得。每張輪播約 $0.01-0.03。
+          </div>
+        </div>
+
+        <div class="settings-section" style="margin-top:14px;border-top:.5px solid var(--rule);padding-top:14px">
+          <label class="ftiny">AI 服務優先順序</label>
+          <select class="input" id="ai-provider" onchange="saveProvider()">
+            <option value="auto">自動（Gemini → Anthropic → 啟發式解析）</option>
+            <option value="gemini">只用 Gemini</option>
+            <option value="anthropic">只用 Anthropic</option>
+            <option value="heuristic">不用 AI（啟發式解析）</option>
+          </select>
+          <div class="api-hint" style="margin-top:6px">
+            啟發式解析完全免費、不需 key，但品質比 AI 差。
+          </div>
         </div>
       </div>
 
-      <button class="btn btn-primary ai-go" onclick="aiGenerate()" style="margin-top:12px">
-        ✦ 讓 AI 寫完整內容
+      <button class="btn btn-primary ai-go" onclick="smartGenerate()" style="margin-top:12px">
+        ✦ 生成輪播
       </button>
       <div class="ai-status" id="ai-status"></div>
     </div>
@@ -1447,108 +1611,356 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 
 輸出時直接給完整 JSON，包在 \`\`\`json ... \`\`\` 中，不要任何說明文字。`;
 
-// API key persistence
+// ─── Key persistence ───────────────────────────────────────────────────────
 function loadAPIKey() {
   const k = localStorage.getItem('wei_anthropic_key');
   if (k) $apiKey.value = k;
+  const gk = localStorage.getItem('wei_gemini_key');
+  const $gk = document.getElementById('gemini-key-input');
+  if ($gk && gk) $gk.value = gk;
+  const prov = localStorage.getItem('wei_ai_provider') || 'auto';
+  const $prov = document.getElementById('ai-provider');
+  if ($prov) $prov.value = prov;
 }
 function saveAPIKey() {
   const k = $apiKey.value.trim();
   if (!k.startsWith('sk-ant-')) {
-    showToast('Key 看起來不對，應該是 sk-ant- 開頭', true);
+    showToast('Anthropic Key 應該是 sk-ant- 開頭', true);
     return;
   }
   localStorage.setItem('wei_anthropic_key', k);
-  showToast('API Key 已儲存');
-  $aiSettings.classList.add('is-hidden');
+  showToast('Anthropic Key 已儲存');
 }
 function clearAPIKey() {
   localStorage.removeItem('wei_anthropic_key');
   $apiKey.value = '';
-  showToast('API Key 已清除');
+  showToast('Anthropic Key 已清除');
+}
+function saveGeminiKey() {
+  const $gk = document.getElementById('gemini-key-input');
+  const k = $gk.value.trim();
+  if (!k.startsWith('AIza')) {
+    showToast('Gemini Key 應該是 AIza 開頭', true);
+    return;
+  }
+  localStorage.setItem('wei_gemini_key', k);
+  showToast('Gemini Key 已儲存');
+}
+function clearGeminiKey() {
+  localStorage.removeItem('wei_gemini_key');
+  document.getElementById('gemini-key-input').value = '';
+  showToast('Gemini Key 已清除');
+}
+function saveProvider() {
+  const v = document.getElementById('ai-provider').value;
+  localStorage.setItem('wei_ai_provider', v);
+  showToast('已設定優先順序：' + v);
 }
 function toggleAISettings() {
   $aiSettings.classList.toggle('is-hidden');
 }
-
 function setStatus(msg, isErr) {
   $aiStatus.textContent = msg || '';
   $aiStatus.classList.toggle('err', !!isErr);
 }
 
-async function aiGenerate() {
-  const topic = $topic.value.trim();
-  if (!topic) {
-    setStatus('請先輸入主題', true);
-    return;
+// ─── Input type detection ─────────────────────────────────────────────────
+function detectInputType(text) {
+  text = text.trim();
+  if (!text) return 'empty';
+  if (text.startsWith('{') || text.startsWith('[')) {
+    try {
+      const j = JSON.parse(text);
+      if (Array.isArray(j.slides)) return 'slides';
+      if (j.s1 || j.s2 || j.s7) return 'engine';
+    } catch {}
   }
-  const key = localStorage.getItem('wei_anthropic_key');
-  if (!key) {
-    setStatus('沒 API Key。建議：複製文字到 Claude 對話框免費生成', true);
-    $aiSettings.classList.remove('is-hidden');
+  return 'text';
+}
+
+// ─── Heuristic text parser (free, offline) ────────────────────────────────
+function parseTextHeuristic(text) {
+  const paras = text.split(/\n\s*\n+/).map(p => p.trim()).filter(p => p);
+  const out = {
+    category: '',
+    s1: {meta:'', titleLines:['','',''], accentLineIndex:1, bodyLines:['','','']},
+    s2: {title:'', subtitle:'', cards:[{q:'',a:''},{q:'',a:''},{q:'',a:''}]},
+    s3: {title:'', subtitle:'', pairs:[{x:'',o:''},{x:'',o:''}]},
+    s4: {title:'三步驟', subtitleLines:['',''], items:[{t:'',s:'',note:''},{t:'',s:'',note:''},{t:'',s:'',note:''}]},
+    s5: {scenario:'', tag:'BY THE NUMBERS', bigNumber:'', unit:'', source:'', rows:[{label:'',val:'',type:'strike'},{label:'',val:'',type:'gold'},{label:'',val:'',type:'dim'}], quote:''},
+    s6: {title:'', items:[{t:'',s:''},{t:'',s:''},{t:'',s:''}]},
+    s7: {ctaSub:'我整理好的東西直接傳給你', toolSub:''},
+  };
+
+  // Heuristic: split paragraphs across 7 slides if we have ~7 paras
+  if (paras.length === 0) return out;
+
+  // S1: First paragraph (or first line)
+  const firstPara = paras[0];
+  const firstLines = firstPara.split('\n').filter(l => l.trim());
+  out.s1.titleLines = firstLines.slice(0, 3);
+  while (out.s1.titleLines.length < 3) out.s1.titleLines.push('');
+  if (paras[1]) out.s1.bodyLines = paras[1].split('\n').filter(l => l.trim()).slice(0, 3);
+  while (out.s1.bodyLines.length < 3) out.s1.bodyLines.push('');
+
+  // Look for special structures
+  const findStructure = pattern => paras.find(p => pattern.test(p));
+
+  // S3: ✕/✓ pattern
+  const pivotPara = findStructure(/[✕✖×].*\n.*[✓◎○]/);
+  if (pivotPara) {
+    const blocks = pivotPara.split(/\n\s*\n/);
+    out.s3.pairs = blocks.slice(0,2).map(b => {
+      const ls = b.split('\n');
+      return {
+        x: (ls.find(l => /^[✕✖×]/.test(l)) || '').replace(/^[✕✖×]\s*/,'').trim(),
+        o: (ls.find(l => /^[✓◎○]/.test(l)) || '').replace(/^[✓◎○]\s*/,'').trim(),
+      };
+    });
+    while (out.s3.pairs.length < 2) out.s3.pairs.push({x:'',o:''});
+  }
+
+  // S4: 01/02/03 numbered lists
+  const methodPara = findStructure(/^\s*(01|02|03|1\.|2\.|3\.)/m);
+  if (methodPara) {
+    const items = methodPara.split(/\n(?=\s*(?:01|02|03|1\.|2\.|3\.))/);
+    out.s4.items = items.slice(0,3).map(it => {
+      const lines = it.split('\n').filter(l => l.trim());
+      return {
+        t: (lines[0]||'').replace(/^(01|02|03|1\.|2\.|3\.)\s*/,'').trim(),
+        s: (lines[1]||'').trim(),
+        note: '',
+      };
+    });
+    while (out.s4.items.length < 3) out.s4.items.push({t:'',s:'',note:''});
+  }
+
+  // S2: → pattern (痛點 questions)
+  const painPara = findStructure(/→.+\n.+\n\n→.+/);
+  if (painPara) {
+    const blocks = painPara.split(/\n\s*\n/);
+    out.s2.cards = blocks.slice(0,3).map(b => {
+      const ls = b.split('\n').filter(l => l.trim());
+      return {
+        q: (ls[0]||'').replace(/^→\s*/,'').trim(),
+        a: (ls[1]||'').trim(),
+      };
+    });
+    while (out.s2.cards.length < 3) out.s2.cards.push({q:'',a:''});
+  }
+
+  // Try to use other paragraphs as titles
+  if (paras.length >= 3 && !out.s2.title) {
+    out.s2.title = paras[2].split('\n')[0] || '';
+  }
+
+  return out;
+}
+
+// ─── AI providers ─────────────────────────────────────────────────────────
+async function aiGenerateGemini(topic, key) {
+  // Try newer model first, fall back to flash if needed
+  const models = ['gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+  let lastErr;
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          contents: [{parts: [{text: SYSTEM_PROMPT + '\n\n主題或文案：\n\n' + topic + '\n\n請依規格輸出完整 JSON。'}]}],
+          generationConfig: {temperature: 0.7, maxOutputTokens: 4000},
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        lastErr = new Error('Gemini API ' + res.status + ': ' + t.slice(0, 200));
+        continue;
+      }
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Gemini API 失敗');
+}
+
+async function aiGenerateAnthropic(topic, key) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      system: SYSTEM_PROMPT,
+      messages: [{role: 'user', content: '主題 / 文案：\n\n' + topic + '\n\n請依規格輸出完整 JSON。'}],
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error('Anthropic API ' + res.status + ': ' + t.slice(0, 200));
+  }
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+function extractJSON(text) {
+  const m = text.match(/```json\s*([\s\S]*?)\s*```/) ||
+            text.match(/```\s*([\s\S]*?)\s*```/) ||
+            text.match(/(\{[\s\S]*\})/);
+  if (!m) throw new Error('AI 回應沒有 JSON 區塊');
+  return JSON.parse(m[1]);
+}
+
+// ─── Smart Generate ───────────────────────────────────────────────────────
+async function smartGenerate() {
+  const text = $topic.value.trim();
+  if (!text) {
+    setStatus('請輸入文字或 JSON', true);
     return;
   }
 
-  setStatus('AI 寫作中... (約 15-30 秒)');
   const btn = document.querySelector('.ai-go');
   const orig = btn.textContent;
   btn.disabled = true;
-  btn.textContent = '✦ 生成中...';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        system: SYSTEM_PROMPT,
-        messages: [{
-          role: 'user',
-          content: '主題 / 文案：\n\n' + topic + '\n\n請依規格輸出完整 JSON。'
-        }],
-      }),
-    });
+    const type = detectInputType(text);
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error('API ' + res.status + '：' + errText.slice(0, 200));
+    if (type === 'engine') {
+      btn.textContent = '✦ 載入 JSON...';
+      setStatus('偵測到引擎格式 JSON，直接套用');
+      $raw.value = text;
+      // Apply brand from JSON if present
+      try {
+        const j = JSON.parse(text);
+        if (j.brand) {
+          document.getElementById('brand-name').value = j.brand.name || '';
+          document.getElementById('brand-handle').value = j.brand.handle || '';
+        }
+      } catch {}
+      generate();
+      setStatus('✓ JSON 已套用');
+      return;
     }
 
-    const data = await res.json();
-    const text = data.content?.[0]?.text || '';
+    if (type === 'slides') {
+      btn.textContent = '✦ 轉換 slides[]...';
+      setStatus('偵測到 slides[] 格式，自動轉換中');
+      const raw = JSON.parse(text);
+      const converted = convertExternalFormat(raw);
+      if (converted.brand) {
+        document.getElementById('brand-name').value = converted.brand.name || '';
+        document.getElementById('brand-handle').value = converted.brand.handle || '';
+      }
+      if (converted._suggested_keyword) $keyword.value = converted._suggested_keyword;
+      if (converted._suggested_tool) $tool.value = converted._suggested_tool;
+      delete converted._suggested_keyword;
+      delete converted._suggested_tool;
+      $raw.value = JSON.stringify(converted, null, 2);
+      generate();
+      setStatus('✓ slides[] 格式轉換完成');
+      return;
+    }
 
-    // Extract JSON
-    const m = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\{[\s\S]*\})/);
-    if (!m) throw new Error('AI 回應沒有 JSON 區塊');
+    // type === 'text' → try AI providers
+    const provider = localStorage.getItem('wei_ai_provider') || 'auto';
+    const geminiKey = localStorage.getItem('wei_gemini_key');
+    const anthropicKey = localStorage.getItem('wei_anthropic_key');
 
-    const json = JSON.parse(m[1]);
+    let aiText = null;
+    let usedProvider = null;
 
-    // Fill the raw textarea and regenerate
+    const tryGemini = async () => {
+      if (geminiKey) {
+        try {
+          btn.textContent = '✦ Gemini 寫作中...';
+          setStatus('用 Gemini AI 生成（10-20 秒）');
+          const r = await aiGenerateGemini(text, geminiKey);
+          aiText = r;
+          usedProvider = 'Gemini';
+          return true;
+        } catch (e) {
+          console.warn('Gemini 失敗：', e);
+          setStatus('Gemini 失敗，嘗試其他方法...', true);
+          return false;
+        }
+      }
+      return false;
+    };
+
+    const tryAnthropic = async () => {
+      if (anthropicKey) {
+        try {
+          btn.textContent = '✦ Claude 寫作中...';
+          setStatus('用 Claude AI 生成（15-30 秒）');
+          const r = await aiGenerateAnthropic(text, anthropicKey);
+          aiText = r;
+          usedProvider = 'Claude';
+          return true;
+        } catch (e) {
+          console.warn('Anthropic 失敗：', e);
+          setStatus('Anthropic 失敗，使用其他方法...', true);
+          return false;
+        }
+      }
+      return false;
+    };
+
+    if (provider === 'auto') {
+      await tryGemini() || await tryAnthropic();
+    } else if (provider === 'gemini') {
+      await tryGemini();
+    } else if (provider === 'anthropic') {
+      await tryAnthropic();
+    }
+
+    let json;
+    if (aiText) {
+      try {
+        json = extractJSON(aiText);
+      } catch (e) {
+        setStatus('AI 回應解析失敗，退回啟發式解析', true);
+        aiText = null;
+      }
+    }
+
+    if (!json) {
+      btn.textContent = '✦ 啟發式解析中...';
+      setStatus('用啟發式解析（沒 AI key 或 AI 失敗）');
+      json = parseTextHeuristic(text);
+      usedProvider = '啟發式解析';
+    }
+
     $raw.value = JSON.stringify(json, null, 2);
     generate();
-    setStatus('✓ 生成完成，已套用到預覽');
-    showToast('AI 生成完成');
+    setStatus(`✓ 已生成（${usedProvider}）。可手動編輯預覽中文字微調`);
+    showToast(`生成完成（${usedProvider}）`);
   } catch (err) {
     console.error(err);
     setStatus('失敗：' + err.message, true);
-    showToast('生成失敗：' + err.message, true);
+    showToast('失敗：' + err.message, true);
   } finally {
     btn.disabled = false;
     btn.textContent = orig;
   }
 }
 
-// Topic textarea: Cmd+Enter triggers AI
+// 保留舊的 aiGenerate 名稱，指向新的 smartGenerate
+const aiGenerate = smartGenerate;
+
+// Topic textarea: Cmd+Enter triggers smart generate
 $topic.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     e.preventDefault();
-    aiGenerate();
+    smartGenerate();
   }
 });
 
@@ -1557,10 +1969,29 @@ $topic.addEventListener('keydown', e => {
   document.getElementById(id).addEventListener('change', generate);
 });
 
+// ─── Onboarding ─────────────────────────────────────────────────────────
+function showOnboard() {
+  document.getElementById('onboard').classList.remove('is-hidden');
+}
+function finishOnboard() {
+  document.getElementById('onboard').classList.add('is-hidden');
+  localStorage.setItem('wei_onboarded', '1');
+}
+function openGeminiPage() {
+  window.open('https://aistudio.google.com/apikey', '_blank');
+}
+
+function maybeShowOnboard() {
+  if (!localStorage.getItem('wei_onboarded')) {
+    showOnboard();
+  }
+}
+
 // Initial
 loadAPIKey();
 loadBrand();
 loadSample();
+maybeShowOnboard();
 </script>
 </body>
 </html>
