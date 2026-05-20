@@ -370,10 +370,12 @@
       <textarea class="textarea ai-topic" id="topic-input" spellcheck="false"
         placeholder="一句話主題、條列重點、整段草稿都可以。
 
-例如：
-・「年輕人該不該買儲蓄險」
-・「複利不是魔法，是時間 × 工具的結果」
-・整段草稿一千字也行，AI 會幫你壓成 7 張"></textarea>
+💡 最省錢的方式：把這段文字直接複製到 Claude 對話框
+   跟他說「幫我做輪播」，他會免費寫好 JSON 給你
+   再回到這裡點「上傳 JSON」載入即可。
+
+下面這顆 AI 鈕是給「不想開 Claude 對話框」的人用的
+（要自己的 Anthropic API Key，每張約 0.01-0.03 美金）"></textarea>
 
       <div id="ai-settings" class="ai-settings is-hidden">
         <label class="ftiny">ANTHROPIC API KEY（只存在你瀏覽器，不會上傳）</label>
@@ -1498,7 +1500,7 @@ async function aiGenerate() {
   }
   const key = localStorage.getItem('wei_anthropic_key');
   if (!key) {
-    setStatus('還沒設定 API Key，點齒輪設定', true);
+    setStatus('沒 API Key。建議：複製文字到 Claude 對話框免費生成', true);
     $aiSettings.classList.remove('is-hidden');
     return;
   }
