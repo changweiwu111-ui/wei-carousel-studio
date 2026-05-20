@@ -448,6 +448,28 @@
   .onboard-btn-ghost:hover { color: var(--accent); border-color: var(--accent); }
 
   .settings-section { padding: 4px 0; }
+
+  .quick-examples {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .quick-btn {
+    background: rgba(232,196,106,0.05);
+    border: .5px solid var(--rule);
+    color: var(--mute);
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .08em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all .15s;
+  }
+  .quick-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(232,196,106,0.10);
+  }
 </style>
 </head>
 <body>
@@ -512,6 +534,13 @@
 ✓ JSON 檔內容（任何格式都吃）
 
 按下方「生成輪播」會自動判斷 → AI 寫好 → 即時預覽"></textarea>
+
+      <div class="quick-examples">
+        <button class="quick-btn" onclick="quickExample('storage')">範例：儲蓄險</button>
+        <button class="quick-btn" onclick="quickExample('etf')">範例：ETF</button>
+        <button class="quick-btn" onclick="quickExample('cashflow')">範例：現金流</button>
+        <button class="quick-btn" onclick="clearTopic()">清空</button>
+      </div>
 
       <div id="ai-settings" class="ai-settings is-hidden">
         <div class="settings-section">
@@ -1969,6 +1998,73 @@ $topic.addEventListener('keydown', e => {
   document.getElementById(id).addEventListener('change', generate);
 });
 
+// ─── Quick examples ─────────────────────────────────────────────────────
+const QUICK_EXAMPLES = {
+  storage: `年輕人該不該買儲蓄險？
+
+我從業 5 年，看過上百個年輕人來問這個。多數人都是聽到「保本」「強迫存錢」就動心，但完全沒搞清楚自己是不是適合買的那種人。
+
+儲蓄險的本質不是存錢，是把錢綁住一段時間（通常 6 年起）。期滿前提解就會賠錢。所以如果你緊急金還沒備齊、醫療保障還沒到位、6 年內這筆錢可能要動，就不該買。
+
+三個前提一個都不能少：
+1. 緊急金至少 6 個月開銷
+2. 醫療險年保額 200 萬以上
+3. 確定 6 年不需要動這筆錢
+
+不是儲蓄險不好，是多數人還沒到能用它的階段。`,
+  etf: `00940 全民搶買，但很多人都買在最高點。
+
+不是 ETF 不好，是大家根本沒搞清楚自己在買什麼。看到大家都買就跟著買，結果買在 10 元高峰，跌到 9 塊就慌。
+
+買 ETF 之前應該問三件事：
+1. 我能撐幾個月不動這筆錢？（流動性）
+2. 這筆錢虧 30% 我會崩潰嗎？（風險承受度）
+3. 我的緊急金跟保障補足了嗎？（底盤穩不穩）
+
+三件事都過關，再去想要買哪檔。否則 ETF 是負債，不是資產。`,
+  cashflow: `月薪 5 萬，工作 10 年，存款卻沒到 100 萬，為什麼？
+
+不是你不會賺錢，是錢進來之後沒有系統在管它。多數月薪族都這樣：薪水進來、扣完信用卡和訂閱費、剩下的就拿來生活、月底所剩無幾、想存錢但永遠「下個月再說」。
+
+要打破這個循環，這週做完三件事：
+1. 把每筆收入貼標籤：固定支出 / 儲蓄 / 生活費
+2. 開一個不能動的帳戶：薪水進來先自動轉一筆過去
+3. 記錄 30 天找最大漏洞：你會發現自己根本沒在意卻一直在花的地方
+
+3 個月後你會看到差距，不需要加薪，先改變錢的流向。`,
+};
+
+function quickExample(key) {
+  $topic.value = QUICK_EXAMPLES[key] || '';
+  saveTopicDraft();
+  $topic.focus();
+}
+
+function clearTopic() {
+  $topic.value = '';
+  localStorage.removeItem('wei_topic_draft');
+  $topic.focus();
+}
+
+function saveTopicDraft() {
+  const v = $topic.value;
+  if (v.length > 0 && v.length < 20000) {
+    localStorage.setItem('wei_topic_draft', v);
+  }
+}
+
+function loadTopicDraft() {
+  const v = localStorage.getItem('wei_topic_draft');
+  if (v && !$topic.value) $topic.value = v;
+}
+
+// Auto-save draft as user types (debounced)
+let _saveTimer;
+$topic.addEventListener('input', () => {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveTopicDraft, 600);
+});
+
 // ─── Onboarding ─────────────────────────────────────────────────────────
 function showOnboard() {
   document.getElementById('onboard').classList.remove('is-hidden');
@@ -1991,6 +2087,7 @@ function maybeShowOnboard() {
 loadAPIKey();
 loadBrand();
 loadSample();
+loadTopicDraft();
 maybeShowOnboard();
 </script>
 </body>
