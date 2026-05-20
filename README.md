@@ -2,9 +2,37 @@
 
 雜誌編輯誌風格 IG 輪播生成器。單檔 HTML，瀏覽器開啟即用。
 
-## 線上版
+## 🌐 線上版
 
-直接在瀏覽器打開即可使用，零安裝。
+**https://changweiwu111-ui.github.io/wei-carousel-studio/**
+
+零安裝，貼網址給任何人都能用。
+
+## ⚡ 一鍵部署（給韋總裁本人）
+
+改完本機的 `carousel-studio.html` 之後，三種方式更新線上版：
+
+### 最快：雙擊
+```
+~/Downloads/部署輪播生成器.command
+```
+（Mac 雙擊即跑，自動同步並開瀏覽器）
+
+### Repo 內：
+```
+~/Downloads/wei-carousel-studio/部署.command
+```
+
+### 終端機：
+```bash
+cd ~/Downloads/wei-carousel-studio && ./deploy.sh
+# 或附訊息：./deploy.sh "加新主題色 sand"
+```
+
+腳本會自動：
+1. 把 `~/Downloads/carousel-studio.html` 複製成 repo 的 `index.html`
+2. 偵測有變更才 commit + push
+3. 開瀏覽器看更新後的線上版
 
 ## 功能
 
