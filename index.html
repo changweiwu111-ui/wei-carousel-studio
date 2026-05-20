@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>韋總裁輪播生成器 ・ STUDIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0A1426;
+    --panel:    #0F1B33;
+    --panelHi:  #14213D;
+    --text:     #F5F1E8;
+    --mute:     rgba(245,241,232,0.62);
+    --dim:      rgba(245,241,232,0.35);
+    --rule:     rgba(245,241,232,0.10);
+    --accent:   #E8C46A;
+    --accent2:  #C9A878;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', 'Noto Serif TC', sans-serif;
+    height: 100vh; overflow: hidden;
+  }
+  button, input, textarea, select { font: inherit; color: inherit; }
+
+  .studio {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    height: 100vh;
+  }
+
+  .sidebar {
+    background: var(--panel);
+    border-right: .5px solid var(--rule);
+    overflow-y: auto;
+    padding: 28px 28px 40px;
+  }
+  .brand {
+    margin-bottom: 28px;
+    padding-bottom: 22px;
+    border-bottom: .5px solid var(--rule);
+  }
+  .brand-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 24px; font-weight: 900;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+  }
+  .brand-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: .24em;
+    color: var(--accent);
+  }
+
+  .section { margin-bottom: 24px; }
+  .section-label {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .18em;
+    color: var(--mute); margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .section-hint {
+    color: var(--dim); font-size: 9px;
+    letter-spacing: .04em; text-transform: none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .input, .textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.25);
+    border: .5px solid var(--rule);
+    color: var(--text);
+    padding: 11px 14px;
+    border-radius: 3px;
+    font-family: 'Inter', 'Noto Serif TC', sans-serif;
+    font-size: 13px;
+    letter-spacing: .02em;
+    transition: border-color .15s, background .15s;
+  }
+  .input::placeholder, .textarea::placeholder { color: var(--dim); }
+  .input:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(232,196,106,0.04);
+  }
+  .textarea {
+    font-family: 'Inter', 'Noto Serif TC', sans-serif;
+    font-size: 13px; line-height: 1.65;
+    min-height: 200px; max-height: 320px;
+    resize: vertical;
+  }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .source-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .src-btn {
+    flex: 1;
+    background: rgba(0,0,0,0.18);
+    border: .5px solid var(--rule);
+    color: var(--mute);
+    padding: 8px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all .15s;
+  }
+  .src-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .file-input { display: none; }
+
+  .raw-hint {
+    margin-top: 10px;
+    padding: 11px 14px;
+    background: rgba(232,196,106,0.05);
+    border-left: 2px solid var(--accent);
+    color: var(--mute);
+    font-size: 11px; line-height: 1.7;
+    font-family: 'Noto Serif TC', serif;
+    border-radius: 2px;
+  }
+
+  /* ─── AI panel ─── */
+  .ai-section {
+    background: linear-gradient(180deg, rgba(232,196,106,0.05) 0%, transparent 100%);
+    border: .5px solid rgba(232,196,106,0.18);
+    border-radius: 4px;
+    padding: 14px 14px 16px;
+    margin-bottom: 18px;
+  }
+  .ai-section .section-label { margin-bottom: 8px; }
+  .ai-gear {
+    background: none; border: none; color: var(--accent);
+    font-size: 14px; cursor: pointer; padding: 0;
+    opacity: .7; transition: opacity .15s, transform .25s;
+  }
+  .ai-gear:hover { opacity: 1; transform: rotate(60deg); }
+  .ai-topic { min-height: 110px; font-size: 13px; }
+  .ai-settings {
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 3px;
+  }
+  .ai-settings.is-hidden { display: none; }
+  .ai-settings .ftiny { display: block; margin-bottom: 6px; }
+  .api-hint {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+  .api-hint code {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+  .ai-go {
+    font-size: 12px;
+    letter-spacing: .14em;
+  }
+  .ai-status {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: var(--accent);
+    min-height: 14px;
+    text-align: center;
+  }
+  .ai-status.err { color: #F4B7A6; }
+
+  /* ─── JSON advanced section ─── */
+  .json-section {
+    background: rgba(0,0,0,0.15);
+    border: .5px solid var(--rule);
+    border-radius: 3px;
+    padding: 0;
+    margin-bottom: 24px;
+  }
+  .json-summary {
+    cursor: pointer;
+    padding: 12px 14px;
+    list-style: none;
+    user-select: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .18em;
+    color: var(--mute);
+    text-transform: uppercase;
+  }
+  .json-summary::-webkit-details-marker { display: none; }
+  .json-summary::before { content: '+ '; color: var(--accent); }
+  .json-section[open] .json-summary::before { content: '− '; }
+  .json-section .source-row,
+  .json-section .textarea { margin: 0 14px; width: calc(100% - 28px); }
+  .json-section[open] { padding-bottom: 14px; }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .sw {
+    cursor: pointer;
+    background: rgba(0,0,0,0.18);
+    border: .5px solid var(--rule);
+    border-radius: 3px;
+    padding: 12px 8px 10px;
+    text-align: center;
+    transition: all .18s;
+  }
+  .sw:hover { border-color: var(--accent2); }
+  .sw.is-active {
+    border-color: var(--accent);
+    background: rgba(232,196,106,0.06);
+  }
+  .sw-circle {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,0.08);
+  }
+  .sw-name { font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+  .sw-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px; letter-spacing: .14em;
+    color: var(--dim); margin-top: 2px;
+  }
+  .sw.is-active .sw-tag { color: var(--accent); }
+
+  .actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .btn {
+    width: 100%;
+    padding: 13px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .18em;
+    transition: all .15s;
+    border: .5px solid;
+  }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--panel);
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: #F0D480; border-color: #F0D480; }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--rule);
+    color: var(--mute);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .help {
+    margin-top: 24px;
+    border-top: .5px solid var(--rule);
+    padding-top: 20px;
+  }
+  .help summary {
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .16em;
+    color: var(--mute);
+    list-style: none;
+    user-select: none;
+  }
+  .help summary::before { content: '+ '; color: var(--accent); }
+  .help[open] summary::before { content: '− '; }
+  .help-body {
+    margin-top: 14px;
+    color: var(--dim);
+    font-size: 11.5px; line-height: 1.8;
+    font-family: 'Noto Serif TC', serif;
+  }
+  .help-body code {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent2); font-size: 10.5px;
+  }
+  .help-body .field {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: .08em;
+  }
+  .help-body p { margin-bottom: 8px; }
+
+  .canvas {
+    background:
+      radial-gradient(ellipse at top, rgba(232,196,106,0.05) 0%, transparent 50%),
+      var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .canvas-frame {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  iframe#preview {
+    width: 100%; height: 100%;
+    border: none;
+    background: transparent;
+  }
+  .placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--dim); gap: 12px;
+    pointer-events: none;
+  }
+  .placeholder.is-hidden { display: none; }
+  .placeholder-mark {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 64px; font-weight: 900;
+    color: var(--accent); opacity: .18;
+  }
+  .placeholder-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .24em;
+    color: var(--mute);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: var(--panelHi);
+    border: .5px solid var(--accent);
+    color: var(--text);
+    padding: 14px 22px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .12em;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(20px); opacity: 0;
+    transition: all .25s;
+    z-index: 100;
+  }
+  .toast.is-show { transform: translateY(0); opacity: 1; }
+  .toast.is-err { border-color: #E07A5F; color: #F4B7A6; }
+
+  @media (max-width: 900px) {
+    .studio { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .sidebar { max-height: 50vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="studio">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-title">韋總裁輪播生成器</div>
+      <div class="brand-sub">STUDIO ・ v3.1 EDITORIAL</div>
+    </div>
+
+    <!-- AI Generator (主要入口) -->
+    <div class="section ai-section">
+      <div class="section-label">
+        <span>AI 生成 ・ TOPIC → 完整輪播</span>
+        <button class="ai-gear" onclick="toggleAISettings()" title="設定 API Key">⚙</button>
+      </div>
+      <textarea class="textarea ai-topic" id="topic-input" spellcheck="false"
+        placeholder="一句話主題、條列重點、整段草稿都可以。
+
+例如：
+・「年輕人該不該買儲蓄險」
+・「複利不是魔法，是時間 × 工具的結果」
+・整段草稿一千字也行，AI 會幫你壓成 7 張"></textarea>
+
+      <div id="ai-settings" class="ai-settings is-hidden">
+        <label class="ftiny">ANTHROPIC API KEY（只存在你瀏覽器，不會上傳）</label>
+        <input class="input" type="password" id="api-key-input"
+          placeholder="sk-ant-...">
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="src-btn" onclick="saveAPIKey()" style="flex:1">儲存 Key</button>
+          <button class="src-btn" onclick="clearAPIKey()" style="flex:1">清除</button>
+        </div>
+        <div class="api-hint">
+          從 <code>console.anthropic.com</code> 取得。每張輪播大約 0.01-0.03 美金。
+        </div>
+      </div>
+
+      <button class="btn btn-primary ai-go" onclick="aiGenerate()" style="margin-top:12px">
+        ✦ 讓 AI 寫完整內容
+      </button>
+      <div class="ai-status" id="ai-status"></div>
+    </div>
+
+    <!-- JSON manual input (進階) -->
+    <details class="section json-section">
+      <summary class="json-summary">
+        <span>進階 ・ 直接編輯 JSON</span>
+      </summary>
+      <div class="source-row" style="margin-top:10px">
+        <button class="src-btn" onclick="loadSample()">範例</button>
+        <button class="src-btn" onclick="document.getElementById('file').click()">上傳 JSON</button>
+        <input type="file" id="file" class="file-input" accept=".json,application/json,.txt" onchange="uploadFile(event)">
+      </div>
+      <textarea class="textarea" id="raw-input" spellcheck="false"
+        placeholder="這裡放的是 AI 產出的 JSON，可手動微調。"></textarea>
+    </details>
+
+    <div class="section">
+      <div class="section-label">
+        <span>主題色系 ・ THEME</span>
+      </div>
+      <div class="swatches">
+        <button class="sw is-active" data-theme="cream" onclick="selectTheme('cream')">
+          <div class="sw-circle" style="background:#F5F1E8"></div>
+          <div class="sw-name">米暖</div>
+          <div class="sw-tag">CREAM</div>
+        </button>
+        <button class="sw" data-theme="ink" onclick="selectTheme('ink')">
+          <div class="sw-circle" style="background:#1A2744"></div>
+          <div class="sw-name">深藍</div>
+          <div class="sw-tag">INK</div>
+        </button>
+        <button class="sw" data-theme="noir" onclick="selectTheme('noir')">
+          <div class="sw-circle" style="background:#0E0E12"></div>
+          <div class="sw-name">近黑</div>
+          <div class="sw-tag">NOIR</div>
+        </button>
+        <button class="sw" data-theme="paper" onclick="selectTheme('paper')">
+          <div class="sw-circle" style="background:#FAFAF8"></div>
+          <div class="sw-name">純白</div>
+          <div class="sw-tag">PAPER</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">
+        <span>關鍵字 + 工具 ・ CTA</span>
+      </div>
+      <div class="input-row">
+        <input class="input" id="keyword-input" placeholder="關鍵字" value="結構">
+        <input class="input" id="tool-input" placeholder="工具名稱" value="個人現金流檢查表">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">
+        <span>個人品牌 ・ BRAND</span>
+        <span class="section-hint">會顯示在每頁左下角</span>
+      </div>
+      <div class="input-row">
+        <input class="input" id="brand-name" placeholder="姓名" value="韋總裁">
+        <input class="input" id="brand-handle" placeholder="@handle" value="@changw_0331">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="generate()">生成輪播 →</button>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="downloadJSON()">下載 JSON</button>
+        <button class="btn btn-ghost" onclick="downloadHTML()">下載 HTML</button>
+      </div>
+    </div>
+
+    <details class="help">
+      <summary>使用說明</summary>
+      <div class="help-body">
+        <p><span class="field">工作流</span> 把文案丟給 Claude → 拿到 JSON → 上傳這裡 → 看預覽 → 微調 → 匯出 PNG</p>
+        <p><span class="field">微調</span> 點預覽中任意文字可直接編輯，編輯後按 <code>EXPORT PNG</code></p>
+        <p><span class="field">切換主題</span> 內容不動，點上方四個圓圈直接看不同色系</p>
+        <p><span class="field">快捷鍵</span> <code>Cmd+Enter</code> 重新生成 ・ <code>← →</code> 翻頁 ・ <code>F</code> 全螢幕</p>
+        <p style="margin-top:12px;color:var(--mute);font-size:11px">分類標籤預設不放，Claude 會自動判斷只在特殊情況才加。</p>
+      </div>
+    </details>
+  </aside>
+
+  <main class="canvas">
+    <div class="canvas-frame">
+      <iframe id="preview" title="預覽"></iframe>
+    </div>
+    <div class="placeholder" id="placeholder">
+      <div class="placeholder-mark">韋</div>
+      <div class="placeholder-text">PRESS  「生成輪播 →」  TO BEGIN</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════════════
+// ENGINE
+// ═════════════════════════════════════════════════════════════════════════════
+const TOKENS = {
+  ink:'#1A2744', inkDeep:'#0F1B33', cream:'#F5F1E8', bone:'#FAF7F0',
+  paper:'#FFFFFF', copper:'#A68455', copperSoft:'#C9A878',
+  ruleCream:'rgba(26,29,46,0.14)', ruleInk:'rgba(245,241,232,0.16)',
+  muteCream:'rgba(26,29,46,0.58)', muteInk:'rgba(245,241,232,0.62)',
+  dimCream:'rgba(26,29,46,0.32)', dimInk:'rgba(245,241,232,0.32)',
+};
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const nlToDiv = s => String(s||'').split('\n').map(l => `<div>${esc(l)}</div>`).join('');
+const pad = n => String(n).padStart(2,'0');
+
+function palette(theme) {
+  if (theme === 'ink') return {bg:TOKENS.ink,paper:TOKENS.inkDeep,text:TOKENS.cream,mute:'rgba(245,241,232,0.62)',dim:'rgba(245,241,232,0.32)',rule:'rgba(245,241,232,0.16)',subText:'rgba(245,241,232,0.92)',accent:'#E8C46A',accentSoft:'rgba(232,196,106,0.18)',dark:true};
+  if (theme === 'noir') return {bg:'#0E0E12',paper:'#1A1A20',text:'#F5F1E8',mute:'rgba(245,241,232,0.62)',dim:'rgba(245,241,232,0.32)',rule:'rgba(245,241,232,0.14)',subText:'rgba(245,241,232,0.92)',accent:'#E8C46A',accentSoft:'rgba(232,196,106,0.16)',dark:true};
+  if (theme === 'paper') return {bg:'#FAFAF8',paper:'#FFFFFF',text:'#0F1116',mute:'rgba(15,17,22,0.58)',dim:'rgba(15,17,22,0.32)',rule:'rgba(15,17,22,0.12)',subText:'rgba(15,17,22,0.88)',accent:'#8B6A1A',accentSoft:'rgba(139,106,26,0.10)',dark:false};
+  return {bg:TOKENS.cream,paper:TOKENS.bone,text:TOKENS.ink,mute:TOKENS.muteCream,dim:TOKENS.dimCream,rule:TOKENS.ruleCream,subText:'rgba(26,29,46,0.88)',accent:'#9C7A20',accentSoft:'rgba(156,122,32,0.12)',dark:false};
+}
+
+function topRule(p, n, label) {
+  return `<div class="top-rule" style="color:${p.dim};border-bottom-color:${p.rule}">
+    <span class="mono">SECTION ${pad(n)}</span>
+    <span class="mono">${esc(label)}</span>
+  </div>`;
+}
+function footer(p, n, total, cat, brand) {
+  const name = (brand && brand.name) || '韋總裁';
+  const handle = (brand && brand.handle) || '@changw_0331';
+  return `<div class="footer">
+    <div class="wm">
+      <div class="wm-name" style="color:${p.mute}">${esc(name)}</div>
+      <div class="wm-handle mono" style="color:${p.dim}">${esc(handle)}</div>
+    </div>
+    <div class="pg mono" style="color:${p.dim}">${cat?esc(cat)+' · ':''}${pad(n)} / ${pad(total)}</div>
+  </div>`;
+}
+
+function S1(d, theme, ctx, brand) {
+  const p = palette(theme), dk = p.dark;
+  const goldAccent = dk ? '#F0CC74' : '#8B6A1A';
+  const goldLine = dk ? '#E8C46A' : '#9C7A20';
+  const ai = d.accentLineIndex ?? d.goldLineIndex ?? 1;
+  const title = (d.titleLines||[]).map((l,i) =>
+    i === ai
+      ? `<div style="color:${goldAccent};text-shadow:${dk?'0 0 24px rgba(240,204,116,.35)':'none'};font-weight:900">${esc(l)}</div>`
+      : `<div style="color:${p.text}">${esc(l)}</div>`
+  ).join('');
+  const cornerC = dk ? 'rgba(201,168,76,.20)' : 'rgba(28,28,30,.08)';
+  const dotC = dk ? 'rgba(201,168,76,' : 'rgba(28,28,30,';
+  const bodyC = dk ? 'rgba(255,255,255,.78)' : 'rgba(28,28,30,.62)';
+  const metaC = dk ? 'rgba(255,255,255,.55)' : 'rgba(28,28,30,.50)';
+  const thinC = dk ? 'rgba(255,255,255,.12)' : 'rgba(28,28,30,.10)';
+  const img = 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1080&q=80';
+  const rgb = theme==='ink'?'26,39,68':theme==='noir'?'14,14,18':theme==='paper'?'250,250,248':'245,241,232';
+  const grad = dk
+    ? `linear-gradient(to bottom,rgba(${rgb},.30),rgba(${rgb},.05) 35%,rgba(${rgb},.45) 70%,rgba(${rgb},.88))`
+    : `linear-gradient(to bottom,rgba(${rgb},.10),rgba(${rgb},.0) 35%,rgba(${rgb},.30) 70%,rgba(${rgb},.78))`;
+  const metaText = d.meta || d.eyebrow || '';
+
+  return `<div class="sl" style="background:${p.bg}">
+    <div style="position:absolute;inset:0;background:url('${img}') center top/cover;opacity:${dk?'.18':'.13'};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0"></div>
+    <div style="position:absolute;inset:0;z-index:1;background:${grad}"></div>
+    <div style="position:absolute;top:38px;right:38px;width:32px;height:32px;border-top:.5px solid ${cornerC};border-right:.5px solid ${cornerC};z-index:2;pointer-events:none"></div>
+    <div style="position:absolute;bottom:38px;right:38px;width:32px;height:32px;border-bottom:.5px solid ${cornerC};border-right:.5px solid ${cornerC};z-index:2;pointer-events:none"></div>
+    <div style="position:absolute;top:50%;right:40px;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:2;pointer-events:none">
+      <div style="width:2.5px;height:2.5px;border-radius:50%;background:${dotC}.22)"></div>
+      <div style="width:2px;height:2px;border-radius:50%;background:${dotC}.14)"></div>
+      <div style="width:2.5px;height:2.5px;border-radius:50%;background:${dotC}.08)"></div>
+    </div>
+    <div class="cover-v2">
+      ${metaText ? `<div class="cover-v2-meta mono" style="color:${metaC}">${esc(metaText)}</div>` : ''}
+      <div class="cover-v2-bar" style="background:${goldLine};${metaText?'':'margin-top:0'}"></div>
+      <div class="cover-v2-title">${title}</div>
+      <div class="cover-v2-thin" style="background:${thinC}"></div>
+      <div class="cover-v2-body" style="color:${bodyC}">
+        ${(d.bodyLines||[]).map(l => `<div>${esc(l)}</div>`).join('')}
+      </div>
+    </div>
+    ${footer(p,1,7,ctx.category,brand)}
+  </div>`;
+}
+
+function S2(d, theme, ctx, brand) {
+  const p = palette(theme);
+  const cards = (d.cards||[]).map((c,i,a) => `
+    <div class="excerpt">
+      <div class="excerpt-no mono" style="color:${p.accent}">${pad(i+1)}</div>
+      <div class="excerpt-body">
+        <div class="excerpt-q" style="color:${p.text}">${esc(c.q)}</div>
+        <div class="excerpt-a" style="color:${p.mute}">${esc(c.a)}</div>
+      </div>
+    </div>
+    ${i < a.length-1 ? `<div class="excerpt-rule" style="background:${p.rule}"></div>` : ''}
+  `).join('');
+  return `<div class="sl" style="background:${p.bg}">
+    <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
+    ${topRule(p,2,'THE PROBLEM')}
+    <div class="quote-mark serif" style="color:${p.dim};opacity:.4">"</div>
+    <div class="spread">
+      <div class="spread-title serif" style="color:${p.text}">${nlToDiv(d.title)}</div>
+      <div class="spread-deck" style="color:${p.subText}">${esc(d.subtitle)}</div>
+      <div class="spread-rule" style="background:${p.rule}"></div>
+      <div class="excerpts">${cards}</div>
+    </div>
+    ${footer(p,2,7,ctx.category,brand)}
+  </div>`;
+}
+
+function S3(d, theme, ctx, brand) {
+  const p = palette(theme);
+  const rows = (d.pairs||[]).map((pair,i,a) => `
+    <div class="pivot-row">
+      <div class="pivot-no mono" style="color:${p.dim}">${pad(i+1)}</div>
+      <div class="pivot-cell">
+        <div class="pivot-label mono" style="color:${p.dim}">OLD THINKING</div>
+        <div class="pivot-text" style="color:${p.mute};text-decoration:line-through;text-decoration-color:${p.dim};text-decoration-thickness:1px">${esc(pair.x)}</div>
+      </div>
+      <div class="pivot-arrow" style="color:${p.accent}">→</div>
+      <div class="pivot-cell">
+        <div class="pivot-label mono" style="color:${p.accent}">WHAT WORKS NOW</div>
+        <div class="pivot-text bold" style="color:${p.text}">${esc(pair.o)}</div>
+      </div>
+    </div>
+    ${i < a.length-1 ? `<div class="pivot-rule" style="background:${p.rule}"></div>` : ''}
+  `).join('');
+  return `<div class="sl" style="background:${p.bg}">
+    <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
+    ${topRule(p,3,'THE PIVOT')}
+    <div class="spread">
+      <div class="spread-title serif" style="color:${p.text}">${nlToDiv(d.title)}</div>
+      ${d.subtitle ? `<div class="spread-deck" style="color:${p.subText}"><em>${esc(d.subtitle)}</em></div>` : ''}
+      <div class="spread-rule" style="background:${p.rule}"></div>
+      <div class="pivots">${rows}</div>
+    </div>
+    ${footer(p,3,7,ctx.category,brand)}
+  </div>`;
+}
+
+function S4(d, theme, ctx, brand) {
+  const p = palette(theme);
+  const items = (d.items||[]).map((it,i,a) => `
+    <div class="protocol-step">
+      <div class="protocol-num serif" style="color:${p.accent}">${pad(i+1)}</div>
+      <div class="protocol-body">
+        <div class="protocol-title" style="color:${p.text}">${esc(it.t)}</div>
+        <div class="protocol-sub" style="color:${p.mute}">${esc(it.s)}</div>
+      </div>
+      ${it.note ? `<div class="protocol-note mono" style="color:${p.dim}">${esc(it.note)}</div>` : ''}
+    </div>
+    ${i < a.length-1 ? `<div class="protocol-rule" style="background:${p.rule}"></div>` : ''}
+  `).join('');
+  return `<div class="sl" style="background:${p.bg}">
+    <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
+    ${topRule(p,4,'THE METHOD')}
+    <div class="spread spread-left">
+      <div class="spread-title serif" style="color:${p.text}">${esc(d.title)}</div>
+      <div class="spread-deck" style="color:${p.subText}">
+        ${(d.subtitleLines||[]).map(l => `<div>${esc(l)}</div>`).join('')}
+      </div>
+      <div class="spread-rule" style="background:${p.rule}"></div>
+      <div class="protocols">${items}</div>
+    </div>
+    ${footer(p,4,7,ctx.category,brand)}
+  </div>`;
+}
+
+function S5(d, theme, ctx, brand) {
+  const p = palette(theme);
+  const rowStyle = t => t==='strike' ? `color:${p.dim};text-decoration:line-through;text-decoration-color:${p.dim}`
+                      : t==='gold'   ? `color:${p.accent};font-weight:600`
+                      :                `color:${p.mute}`;
+  const rows = (d.rows||[]).map((r,i,a) => `
+    <div class="data-row" style="${i<a.length-1?`border-bottom:.5px solid ${p.rule}`:''}">
+      <span class="data-label" style="color:${p.mute}">${esc(r.label)}</span>
+      <span class="data-val mono" style="${rowStyle(r.type)}">${esc(r.val)}</span>
+    </div>
+  `).join('');
+  return `<div class="sl" style="background:${p.bg}">
+    <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
+    ${topRule(p,5,'BY THE NUMBERS')}
+    <div class="spread spread-left">
+      <div class="data-scenario" style="color:${p.subText}">${esc(d.scenario)}</div>
+      <div class="data-tag mono" style="color:${p.accent}">${esc(d.tag)}</div>
+      <div class="data-hero">
+        <span class="data-big serif" style="color:${p.text}">${esc(d.bigNumber)}</span>
+        <span class="data-unit serif" style="color:${p.subText}">${esc(d.unit)}</span>
+      </div>
+      <div class="data-source" style="color:${p.subText}">${esc(d.source||'')}</div>
+      <div class="data-rule" style="background:${p.rule}"></div>
+      <div class="data-table">${rows}</div>
+      <div class="data-rule" style="background:${p.rule}"></div>
+      <div class="data-quote serif" style="color:${p.mute}"><em>${esc(d.quote)}</em></div>
+    </div>
+    ${footer(p,5,7,ctx.category,brand)}
+  </div>`;
+}
+
+function S6(d, theme, ctx, brand) {
+  const p = palette(theme);
+  const items = (d.items||[]).map((it,i,a) => `
+    <div class="list-row">
+      <div class="list-num serif" style="color:${p.accent}">${pad(i+1)}</div>
+      <div class="list-body">
+        <div class="list-title" style="color:${p.text}">${esc(it.t)}</div>
+        <div class="list-sub" style="color:${p.mute}">${esc(it.s)}</div>
+      </div>
+    </div>
+    ${i < a.length-1 ? `<div class="list-rule" style="background:${p.rule}"></div>` : ''}
+  `).join('');
+  return `<div class="sl" style="background:${p.bg}">
+    <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
+    ${topRule(p,6,d.sectionLabel||'THE READING LIST')}
+    <div class="spread spread-left">
+      <div class="spread-title serif" style="color:${p.text}">${nlToDiv(d.title)}</div>
+      <div class="spread-rule" style="background:${p.rule}"></div>
+      <div class="lists">${items}</div>
+    </div>
+    ${footer(p,6,7,ctx.category,brand)}
+  </div>`;
+}
+
+function S7(d, kw, tool, theme, ctx, brand) {
+  const p = palette(theme);
+  const ctaSub = d.ctaSub || '我整理好的東西直接傳給你';
+  const toolSub = d.toolSub || '';
+  const klen = kw.replace(/\s/g,'').length;
+  const khint = klen<=2?'這兩個字':klen<=4?`這 ${klen} 個字`:'這個關鍵字';
+  return `<div class="sl" style="background:${p.bg}">
+    <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
+    ${topRule(p,7,'THE END')}
+    <div class="end-frame">
+      <div class="end-mark mono" style="color:${p.dim}">— FIN —</div>
+      <div class="end-deck serif" style="color:${p.subText}"><em>${esc(ctaSub)}</em></div>
+      <div class="end-cta-block">
+        <div class="end-cta-arrow" style="color:${p.accent}">↓</div>
+        <div class="end-cta-headline serif" style="color:${p.text}">
+          底下留言<span style="color:${p.accent}">${khint}</span>
+        </div>
+        <div class="end-keyword" style="color:${p.text};border-color:${p.accent};background:${p.dark?'rgba(212,179,90,0.08)':'rgba(212,179,90,0.10)'}">
+          <span class="serif">${esc(kw)}</span>
+        </div>
+        <div class="end-cta-tail" style="color:${p.text}">我把這個工具<span style="color:${p.accent};font-weight:900">直接傳給你</span></div>
+      </div>
+      <div class="end-tool" style="border-color:${p.rule};background:${p.dark?'rgba(245,241,232,0.04)':'rgba(26,29,46,0.03)'}">
+        <div class="end-tool-label mono" style="color:${p.accent}">YOU'LL RECEIVE</div>
+        <div class="end-tool-name serif" style="color:${p.text}">${esc(tool)}</div>
+        ${toolSub ? `<div class="end-tool-sub" style="color:${p.mute}">${esc(toolSub)}</div>` : ''}
+      </div>
+      <div class="end-rule" style="background:${p.rule}"></div>
+      <div class="end-sign mono" style="color:${p.dim}">FOLLOW · ${esc((brand && brand.handle) || '@changw_0331')}</div>
+    </div>
+    ${footer(p,7,7,ctx.category,brand)}
+  </div>`;
+}
+
+const SLIDE_CSS = `
+  :root { --copper: ${TOKENS.copper}; --ink: ${TOKENS.ink}; --cream: ${TOKENS.cream}; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #0B0E1A; font-family: 'Inter', 'Noto Serif TC', sans-serif; }
+  body { min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 16px 56px; gap:14px; }
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; justify-content:center; }
+  .tab { background:rgba(245,241,232,.06); border:.5px solid rgba(245,241,232,.10); color:rgba(245,241,232,.40); padding:7px 14px; font-size:10px; font-family:'JetBrains Mono',monospace; letter-spacing:.14em; cursor:pointer; border-radius:2px; transition:all .18s; }
+  .tab.is-active { background:var(--copper); color:var(--ink); border-color:var(--copper); }
+  .stage-wrap { display:flex; align-items:center; gap:8px; width:100%; max-width:520px; }
+  .arrow { background:none; border:none; color:rgba(245,241,232,.22); font-size:30px; cursor:pointer; line-height:1; padding:4px; transition:color .2s; }
+  .arrow:hover { color:rgba(245,241,232,.65); }
+  .stage { flex:1; aspect-ratio:4/5; position:relative; overflow:hidden; background:var(--cream); border-radius:2px; box-shadow:0 24px 60px -16px rgba(0,0,0,.4), 0 8px 24px -8px rgba(0,0,0,.3); }
+  .sl { position:absolute; inset:0; opacity:0; transition:opacity .32s ease; pointer-events:none; font-family:'Inter','Noto Serif TC',sans-serif; overflow:hidden; }
+  .sl.is-active { opacity:1; pointer-events:auto; }
+  .grain { position:absolute; inset:0; pointer-events:none; z-index:1; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); mix-blend-mode:multiply; }
+  .serif { font-family:'Noto Serif TC',serif; }
+  .mono { font-family:'JetBrains Mono',monospace; letter-spacing:.12em; }
+  .bold { font-weight:700; }
+  .top-rule { position:absolute; top:0; left:56px; right:56px; display:flex; justify-content:space-between; align-items:center; padding:36px 0 14px; font-size:9px; border-bottom:.5px solid; z-index:4; }
+  .footer { position:absolute; bottom:36px; left:56px; right:56px; display:flex; justify-content:space-between; align-items:flex-end; z-index:10; }
+  .wm { display:flex; flex-direction:column; gap:2px; }
+  .wm-name { font-family:'Noto Serif TC',serif; font-size:11px; font-weight:500; letter-spacing:.10em; }
+  .wm-handle { font-size:9px; letter-spacing:.04em; opacity:.9; }
+  .pg { font-size:9px; align-self:flex-end; }
+  .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:68px 56px 96px; z-index:3; }
+  .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
+  .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:30px; font-weight:900; letter-spacing:.05em; line-height:1.55; }
+  .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
+  .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:13px; line-height:2.1; letter-spacing:.04em; }
+  .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:90px 56px 96px; z-index:3; text-align:center; align-items:center; }
+  .spread-left { text-align:left; align-items:flex-start; }
+  .spread-title { font-size:32px; font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; }
+  .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
+  .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
+  .spread-left .spread-rule { margin-left:0; }
+  .quote-mark { position:absolute; top:64px; left:56px; font-size:120px; font-weight:900; line-height:1; font-family:'Noto Serif TC',serif; z-index:2; }
+  .excerpts { width:100%; text-align:left; }
+  .excerpt { display:flex; gap:18px; padding:14px 0; align-items:flex-start; }
+  .excerpt-no { font-size:10px; padding-top:4px; flex-shrink:0; }
+  .excerpt-body { flex:1; }
+  .excerpt-q { font-size:14px; font-weight:600; line-height:1.5; letter-spacing:.02em; margin-bottom:4px; }
+  .excerpt-a { font-size:12px; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
+  .excerpt-rule { width:100%; height:.5px; }
+  .pivots { width:100%; text-align:left; }
+  .pivot-row { display:grid; grid-template-columns:24px 1fr 24px 1fr; gap:14px; align-items:flex-start; padding:14px 0; }
+  .pivot-no { font-size:10px; padding-top:8px; }
+  .pivot-cell { display:flex; flex-direction:column; gap:6px; }
+  .pivot-label { font-size:8px; }
+  .pivot-text { font-size:13px; line-height:1.45; letter-spacing:.02em; }
+  .pivot-text.bold { font-weight:700; }
+  .pivot-arrow { font-size:18px; padding-top:24px; text-align:center; font-family:'JetBrains Mono',monospace; }
+  .pivot-rule { width:100%; height:.5px; }
+  .protocols { width:100%; }
+  .protocol-step { display:grid; grid-template-columns:40px 1fr auto; gap:16px; align-items:baseline; padding:14px 0; }
+  .protocol-num { font-size:22px; font-weight:900; line-height:1; letter-spacing:-.02em; }
+  .protocol-body { display:flex; flex-direction:column; gap:4px; }
+  .protocol-title { font-size:15px; font-weight:700; letter-spacing:.02em; line-height:1.4; }
+  .protocol-sub { font-size:12px; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
+  .protocol-note { font-size:8px; align-self:center; }
+  .protocol-rule { width:100%; height:.5px; }
+  .data-scenario { font-size:15px; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:8px; font-weight:500; }
+  .data-tag { font-size:8px; margin-bottom:12px; letter-spacing:.22em; }
+  .data-hero { display:flex; align-items:baseline; gap:14px; margin-bottom:14px; flex-wrap:nowrap; }
+  .data-big { font-size:72px; font-weight:900; line-height:1; letter-spacing:-.02em; }
+  .data-unit { font-size:20px; letter-spacing:.03em; font-weight:600; white-space:nowrap; line-height:1.2; }
+  .data-source { font-size:15px; font-weight:500; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:22px; }
+  .data-rule { width:100%; height:.5px; margin-bottom:14px; }
+  .data-table { width:100%; margin-bottom:14px; }
+  .data-row { display:flex; justify-content:space-between; padding:9px 0; align-items:baseline; }
+  .data-label { font-size:12px; letter-spacing:.02em; }
+  .data-val { font-size:14px; }
+  .data-quote { font-size:15px; line-height:1.55; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
+  .lists { width:100%; }
+  .list-row { display:grid; grid-template-columns:40px 1fr; gap:16px; align-items:baseline; padding:14px 0; }
+  .list-num { font-size:22px; font-weight:900; line-height:1; letter-spacing:-.02em; }
+  .list-body { display:flex; flex-direction:column; gap:4px; }
+  .list-title { font-size:15px; font-weight:700; letter-spacing:.02em; line-height:1.4; }
+  .list-sub { font-size:12px; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
+  .list-rule { width:100%; height:.5px; }
+  .end-frame { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:90px 56px 96px; z-index:3; text-align:center; }
+  .end-mark { font-size:9px; letter-spacing:.4em; margin-bottom:22px; }
+  .end-deck { font-size:15px; line-height:1.7; max-width:300px; margin-bottom:28px; letter-spacing:.02em; font-weight:500; }
+  .end-cta-block { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:26px; }
+  .end-cta-arrow { font-size:30px; font-weight:900; line-height:1; }
+  .end-cta-headline { font-size:20px; font-weight:900; letter-spacing:.08em; }
+  .end-cta-headline span { font-weight:900; }
+  .end-keyword { border:1.5px solid; padding:14px 44px; letter-spacing:.14em; margin-top:4px; }
+  .end-keyword .serif { font-size:36px; font-weight:900; }
+  .end-cta-tail { font-size:16px; font-family:'Noto Serif TC',serif; font-weight:700; letter-spacing:.04em; margin-top:10px; }
+  .end-tool { border:.5px solid; padding:16px 22px; max-width:320px; margin-bottom:24px; text-align:left; }
+  .end-tool-label { font-size:8px; margin-bottom:8px; }
+  .end-tool-name { font-size:16px; font-weight:700; letter-spacing:.02em; }
+  .end-tool-sub { font-size:11px; line-height:1.6; margin-top:8px; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
+  .end-rule { width:40px; height:.5px; margin-bottom:14px; }
+  .end-sign { font-size:10px; letter-spacing:.22em; }
+  .dots { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); display:flex; gap:5px; z-index:20; }
+  .dot { width:5px; height:5px; border-radius:50%; background:rgba(166,132,85,.28); border:none; cursor:pointer; transition:all .2s; padding:0; }
+  .dot.is-active { width:18px; border-radius:3px; background:var(--copper); }
+  .panel { width:100%; max-width:500px; background:#131726; border:.5px solid rgba(245,241,232,.08); border-radius:4px; overflow:hidden; }
+  .panel-tabs { display:flex; border-bottom:.5px solid rgba(245,241,232,.07); }
+  .panel-tab { flex:1; padding:10px 4px; background:none; border:none; border-bottom:1.5px solid transparent; color:rgba(245,241,232,.32); font-size:10px; cursor:pointer; font-family:'JetBrains Mono',monospace; letter-spacing:.06em; }
+  .panel-tab.is-active { color:var(--copper); border-bottom-color:var(--copper); }
+  .panel-body { display:none; padding:14px; color:rgba(245,241,232,.55); font-size:11px; line-height:1.75; white-space:pre-wrap; max-height:140px; overflow-y:auto; font-family:'JetBrains Mono','Noto Serif TC',monospace; }
+  .panel-body.is-active { display:block; }
+  .panel-actions { display:flex; border-top:.5px solid rgba(245,241,232,.06); }
+  .panel-btn { flex:1; padding:11px; background:rgba(166,132,85,.06); border:none; color:var(--copper); font-size:10px; cursor:pointer; font-family:'JetBrains Mono',monospace; letter-spacing:.12em; transition:background .15s; }
+  .panel-btn:hover { background:rgba(166,132,85,.16); }
+  .panel-btn + .panel-btn { border-left:.5px solid rgba(245,241,232,.06); }
+  [contenteditable]:focus { outline:2px solid rgba(166,132,85,.55); outline-offset:4px; border-radius:2px; }
+  .exporting .tabs, .exporting .panel, .exporting .arrow, .exporting .dots { visibility:hidden; }
+`;
+
+function buildCarouselHTML(content, keyword, toolName, theme = 'cream', brand = null) {
+  if (theme === 'dark') theme = 'ink';
+  if (theme === 'light') theme = 'cream';
+  brand = brand || {name:'韋總裁', handle:'@changw_0331'};
+  const ctx = {
+    category: content.category ? String(content.category).toUpperCase().slice(0,40) : '',
+  };
+  const slides = [
+    S1(content.s1||{}, theme, ctx, brand),
+    S2(content.s2||{}, theme, ctx, brand),
+    S3(content.s3||{}, theme, ctx, brand),
+    S4(content.s4||{}, theme, ctx, brand),
+    S5(content.s5||{}, theme, ctx, brand),
+    S6(content.s6||{}, theme, ctx, brand),
+    S7(content.s7||{}, keyword, toolName, theme, ctx, brand),
+  ];
+  const slideHTML = slides.map((h,i) => i===0 ? h.replace('class="sl"','class="sl is-active"') : h).join('\n');
+  const dots = slides.map((_,i) => `<button class="dot${i===0?' is-active':''}" onclick="goto(${i})" aria-label="slide ${i+1}"></button>`).join('');
+  const ig = `${(content.s1?.titleLines||[]).join(' ')}
+
+${content.s2?.subtitle||''}
+
+${(content.s3?.title||'').replace(/\n/g,' ')}
+
+底下留言「${keyword}」
+我把${toolName}傳給你
+
+${brand.handle}
+${content.hashtags||'#理財規劃 #個人理財 #保險規劃 #財務自由 #ETF #被動收入'}`;
+
+  return `<!DOCTYPE html>
+<html lang="zh-TW"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>韋總裁輪播</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>
+<style>${SLIDE_CSS}</style>
+</head><body>
+<div class="tabs">${['V','I','R','R','A','A','L'].map((v,i) => `<button class="tab${i===0?' is-active':''}" onclick="goto(${i})">${v}</button>`).join('')}</div>
+<div class="stage-wrap">
+  <button class="arrow" onclick="prev()">‹</button>
+  <div class="stage" id="stage">
+    ${slideHTML}
+    <div class="dots">${dots}</div>
+  </div>
+  <button class="arrow" onclick="next()">›</button>
+</div>
+<div class="panel">
+  <div class="panel-tabs">
+    <button class="panel-tab is-active" onclick="tab(0)">IG 附文</button>
+    <button class="panel-tab" onclick="tab(1)">說明</button>
+  </div>
+  <div class="panel-body is-active" id="p0">${esc(ig)}</div>
+  <div class="panel-body" id="p1">v3.1 STUDIO ・ 點任意文字可直接編輯 ・ ${esc(theme.toUpperCase())}
+EXPORT PNG：當前那張匯出 ・ EXPORT ALL：全部 7 張</div>
+  <div class="panel-actions">
+    <button class="panel-btn" onclick="copyPanel()">COPY</button>
+    <button class="panel-btn" onclick="exportCurrent()">EXPORT PNG</button>
+    <button class="panel-btn" onclick="exportAll()">EXPORT ALL</button>
+  </div>
+</div>
+<script>
+let cur=0, activeTab=0; const total=7;
+function goto(i){const s=document.querySelectorAll('.sl'),d=document.querySelectorAll('.dot'),t=document.querySelectorAll('.tab');s[cur].classList.remove('is-active');d[cur].classList.remove('is-active');t[cur].classList.remove('is-active');cur=i;s[i].classList.add('is-active');d[i].classList.add('is-active');t[i].classList.add('is-active');}
+function prev(){goto((cur-1+total)%total);}
+function next(){goto((cur+1)%total);}
+function tab(i){document.querySelectorAll('.panel-tab').forEach((b,j)=>b.classList.toggle('is-active',j===i));document.querySelectorAll('.panel-body').forEach((p,j)=>p.classList.toggle('is-active',j===i));activeTab=i;}
+function copyPanel(){const b=document.querySelectorAll('.panel-body')[activeTab];navigator.clipboard.writeText(b.innerText).then(()=>{const btn=event.target;const t=btn.textContent;btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent=t,1500);});}
+async function exportCurrent(){const sl=document.querySelectorAll('.sl')[cur];document.body.classList.add('exporting');const c=await html2canvas(sl,{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='韋總裁_slide_'+String(cur+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();}
+async function exportAll(){const btn=event.target;const orig=btn.textContent;const sls=document.querySelectorAll('.sl');for(let i=0;i<sls.length;i++){btn.textContent='EXPORTING '+(i+1)+'/'+sls.length;goto(i);await new Promise(r=>setTimeout(r,400));document.body.classList.add('exporting');const c=await html2canvas(sls[i],{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='韋總裁_slide_'+String(i+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();await new Promise(r=>setTimeout(r,200));}btn.textContent='DONE ✓';setTimeout(()=>btn.textContent=orig,1500);}
+document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.children.length===0&&el.innerText.trim()&&!el.classList.contains('wm-name')&&!el.classList.contains('wm-handle'))el.setAttribute('contenteditable','true');});
+document.addEventListener('keydown',ev=>{if(ev.target.isContentEditable)return;if(ev.key==='ArrowLeft')prev();if(ev.key==='ArrowRight')next();if(ev.key==='f'||ev.key==='F'){if(!document.fullscreenElement)document.getElementById('stage').requestFullscreen();else document.exitFullscreen();}});
+let tx=0;const stage=document.getElementById('stage');stage.addEventListener('touchstart',ev=>tx=ev.touches[0].clientX,{passive:true});stage.addEventListener('touchend',ev=>{const d=ev.changedTouches[0].clientX-tx;if(Math.abs(d)>40)d<0?next():prev();});
+<\/script>
+</body></html>`;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SAMPLE (no category — auto-empty)
+// ═════════════════════════════════════════════════════════════════════════════
+const SAMPLE = {
+  s1: {
+    meta: "",
+    titleLines: ["30 歲沒存到", "一百萬", "你真的輸了嗎"],
+    accentLineIndex: 1,
+    bodyLines: ["多數人都在比錯東西", "金額是表象，結構才是本體", "看不見結構，存再多也是錯覺"]
+  },
+  s2: {
+    title: "你以為的落後\n其實是比錯指標",
+    subtitle: "做過 100 個諮詢，73 個都卡在這",
+    cards: [
+      {q:"看到同學買房就覺得自己慢了", a:"你沒看到他爸媽幫付的 600 萬頭期"},
+      {q:"看網紅曬資產截圖就懷疑人生", a:"你看到的是業配，不是他的真實財務"},
+      {q:"拿「30 歲該存 X 萬」當人生 KPI", a:"那是中位數，不是你的人生劇本"}
+    ]
+  },
+  s3: {
+    title: "比錯的不是金額\n是你看的維度",
+    subtitle: "存款是過去的紀錄，現金流才是未來的關鍵",
+    pairs: [
+      {x:"誰存得多誰就贏", o:"誰撐得住意外誰才贏"},
+      {x:"薪水高 = 財務穩定", o:"結構對 = 真的穩定"}
+    ]
+  },
+  s4: {
+    title: "三件事這週做完",
+    subtitleLines: ["不用一次到位", "做完這三件，你的焦慮會少一半"],
+    items: [
+      {t:"把錢分成三份來看", s:"流動、保障、投資，先紙上分清楚", note:"10MIN"},
+      {t:"算月開銷 × 6", s:"你的緊急金能撐幾個月", note:"5MIN"},
+      {t:"刪掉炫富帳號", s:"你看不到他們的負債", note:"NOW"}
+    ]
+  },
+  s5: {
+    scenario: "存了 80 萬，現在全押定存",
+    tag: "ANNUAL YIELD",
+    bigNumber: "36,000",
+    unit: "元 / 一 年",
+    source: "如果改成三份錢配置，一年可以領這麼多利息",
+    rows: [
+      {label:"現在 ・ 全押定存", val:"12,000 / 年", type:"strike"},
+      {label:"改成 ・ 三份錢配置", val:"36,000 / 年", type:"gold"},
+      {label:"10 年下來多領", val:"240,000 元", type:"dim"}
+    ],
+    quote: "「不是你不夠努力，是錢沒放在會長大的地方。」"
+  },
+  s6: {
+    title: "比存款更該看的\n三個數字",
+    items: [
+      {t:"緊急金 ÷ 月開銷 ≥ 6", s:"突發狀況下你能撐多久"},
+      {t:"醫療險年保額 ≥ 200 萬", s:"一次大病不能掏空積蓄"},
+      {t:"投資 ÷ 總資產 = 40 ~ 60 %", s:"30 歲合理的成長配置"}
+    ]
+  },
+  s7: {
+    ctaSub: "一份幫你看懂自己現金流結構的檢查表",
+    toolSub: "三分鐘填完，輸出你的三份錢比例、缺口、下一步該補哪塊"
+  }
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STUDIO
+// ═════════════════════════════════════════════════════════════════════════════
+const $raw     = document.getElementById('raw-input');
+const $keyword = document.getElementById('keyword-input');
+const $tool    = document.getElementById('tool-input');
+const $preview = document.getElementById('preview');
+const $placeholder = document.getElementById('placeholder');
+const $toast   = document.getElementById('toast');
+let currentTheme = 'cream';
+let lastHTML = '';
+
+function showToast(msg, isErr) {
+  $toast.textContent = msg;
+  $toast.classList.toggle('is-err', !!isErr);
+  $toast.classList.add('is-show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => $toast.classList.remove('is-show'), 2400);
+}
+
+function loadSample() {
+  $raw.value = JSON.stringify(SAMPLE, null, 2);
+  generate();
+  showToast('範例已載入');
+}
+
+function uploadFile(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    $raw.value = e.target.result;
+    try {
+      JSON.parse(e.target.result);
+      generate();
+      showToast('JSON 已載入');
+    } catch (err) {
+      showToast('JSON 格式錯誤：' + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+function selectTheme(theme) {
+  currentTheme = theme;
+  document.querySelectorAll('.sw').forEach(b =>
+    b.classList.toggle('is-active', b.dataset.theme === theme)
+  );
+  if (lastHTML) generate();
+}
+
+function getBrand() {
+  return {
+    name: (document.getElementById('brand-name').value || '韋總裁').trim(),
+    handle: (document.getElementById('brand-handle').value || '@changw_0331').trim(),
+  };
+}
+
+function saveBrand() {
+  const b = getBrand();
+  localStorage.setItem('wei_brand_name', b.name);
+  localStorage.setItem('wei_brand_handle', b.handle);
+}
+
+function loadBrand() {
+  const n = localStorage.getItem('wei_brand_name');
+  const h = localStorage.getItem('wei_brand_handle');
+  if (n) document.getElementById('brand-name').value = n;
+  if (h) document.getElementById('brand-handle').value = h;
+}
+
+function generate() {
+  let content;
+  try {
+    content = JSON.parse($raw.value || '{}');
+  } catch (err) {
+    showToast('JSON 解析失敗：' + err.message, true);
+    return;
+  }
+  const kw   = ($keyword.value || '結構').trim();
+  const tool = ($tool.value || '個人現金流檢查表').trim();
+  const brand = getBrand();
+  saveBrand();
+  const html = buildCarouselHTML(content, kw, tool, currentTheme, brand);
+  lastHTML = html;
+  $preview.srcdoc = html;
+  $placeholder.classList.add('is-hidden');
+}
+
+function downloadJSON() {
+  if (!$raw.value.trim()) {
+    showToast('沒有內容可下載', true);
+    return;
+  }
+  let pretty;
+  try {
+    pretty = JSON.stringify(JSON.parse($raw.value), null, 2);
+  } catch (err) {
+    showToast('JSON 格式錯誤', true);
+    return;
+  }
+  const blob = new Blob([pretty], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `content_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON 已下載');
+}
+
+function downloadHTML() {
+  if (!lastHTML) {
+    showToast('請先按生成輪播', true);
+    return;
+  }
+  const blob = new Blob([lastHTML], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `carousel_${currentTheme}_${date}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('HTML 已下載');
+}
+
+[$keyword, $tool].forEach(el => {
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') generate();
+  });
+});
+
+$raw.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    generate();
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AI GENERATION (Anthropic API direct from browser)
+// ═════════════════════════════════════════════════════════════════════════════
+const $topic = document.getElementById('topic-input');
+const $apiKey = document.getElementById('api-key-input');
+const $aiStatus = document.getElementById('ai-status');
+const $aiSettings = document.getElementById('ai-settings');
+
+const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
+
+# 身份背景
+韋總裁是富邦人壽業務主任，IG @changw_0331，用個人品牌經營保險與財務諮詢。
+受眾：22-45 歲有固定收入上班族（工程師、護理師、老師、律師）。
+品牌核心句：「真誠才是必殺技」。
+
+# 你的任務
+把使用者給的主題 / 重點 / 草稿，改寫成 7 張輪播 content.json，**直接輸出 JSON，包在 \`\`\`json ... \`\`\` 中，不要任何其他文字**。
+
+# 7 張結構（VIRAL）
+- s1 Hook 封面：3 行標題（第二行金色點題），下方 3 行身體文案說明背景
+- s2 Pain 痛點：兩行主標 + 1 副標 + 3 個痛點 Q/A
+- s3 Pivot 翻轉：兩行主標 + 副標 + 2 組「舊觀念 → 新觀念」
+- s4 Method 解法：8 字內主標 + 2 行說明 + 3 個行動步驟（可加 NOTE 如 10MIN）
+- s5 Authority 數字：情境 + 英文 TAG + 大數字 + 單位 + 1 句說明 + 3 行對比 + 結語金句
+- s6 Proof 清單：兩行主標 + 3 個重點條目
+- s7 CTA：留言引言 + 工具描述
+
+# 🚫 現實感原則（絕對禁止）
+**不准編造任何具體財務數字**：保費金額、年化報酬率、利率、配息率、保額、佣金、收入數字等。
+- 如果主題涉及這類數字，要明確標註「假設情境」「以下舉例試算」
+- 例外：通用統計概念（如「定存利率約 1.5%」「ETF 平均 5-7%」）可用，但要說明是「市場約略水位」不是預測
+- 禁止「研究指出」「數據顯示」這種無來源宣稱
+- 韋總裁人設細節（從業 5 年、做過 100 個諮詢）這類話可用
+
+# 韋總裁聲音規則
+**必用**：短句、具體場景、具體數字、口語「不是 A，是 B」、撐得住 / 底盤穩 / 三份錢這類用詞
+**禁用**：
+- 書面語、AI 腔（「此份資料」「綜上所述」「眾所周知」）
+- 推銷感（「立即」「不要錯過」「快點」）
+- 形容詞堆疊（驚人、震撼、超強）
+- 用「您」（一律用「你」）
+- 用「！」表情緒（情緒靠內容）
+- 「親愛的」「朋友們」開頭
+- 通用「很多人」「不少」（要具體）
+
+# 邏輯一致性（強制）
+1. **s5.bigNumber 必須 = s5.rows 裡 type=gold 的 val**（視覺一致）
+2. s2 痛點 → s3 翻轉 → s4 解法 必須環環相扣
+3. s5 數字情境要呼應 s1 主題
+4. s6 三點不能跟 s4 三點完全重複
+
+# 分類標籤（category）
+**預設留空**。除非主題明確是系列（如「ETF 系列 03」），否則 category 不要填。
+
+# JSON Schema
+{
+  "category": "",
+  "s1": {"meta":"","titleLines":["","",""],"accentLineIndex":1,"bodyLines":["","",""]},
+  "s2": {"title":"主標1\\n主標2","subtitle":"副標","cards":[{"q":"","a":""},{"q":"","a":""},{"q":"","a":""}]},
+  "s3": {"title":"主標1\\n主標2","subtitle":"副標","pairs":[{"x":"","o":""},{"x":"","o":""}]},
+  "s4": {"title":"","subtitleLines":["",""],"items":[{"t":"","s":"","note":""},{"t":"","s":"","note":""},{"t":"","s":"","note":""}]},
+  "s5": {"scenario":"","tag":"ENGLISH","bigNumber":"","unit":"","source":"淺顯一句","rows":[{"label":"","val":"","type":"strike"},{"label":"","val":"","type":"gold"},{"label":"","val":"","type":"dim"}],"quote":"結語金句"},
+  "s6": {"title":"主標1\\n主標2","items":[{"t":"","s":""},{"t":"","s":""},{"t":"","s":""}]},
+  "s7": {"ctaSub":"","toolSub":""}
+}
+
+輸出時直接給完整 JSON，包在 \`\`\`json ... \`\`\` 中，不要任何說明文字。`;
+
+// API key persistence
+function loadAPIKey() {
+  const k = localStorage.getItem('wei_anthropic_key');
+  if (k) $apiKey.value = k;
+}
+function saveAPIKey() {
+  const k = $apiKey.value.trim();
+  if (!k.startsWith('sk-ant-')) {
+    showToast('Key 看起來不對，應該是 sk-ant- 開頭', true);
+    return;
+  }
+  localStorage.setItem('wei_anthropic_key', k);
+  showToast('API Key 已儲存');
+  $aiSettings.classList.add('is-hidden');
+}
+function clearAPIKey() {
+  localStorage.removeItem('wei_anthropic_key');
+  $apiKey.value = '';
+  showToast('API Key 已清除');
+}
+function toggleAISettings() {
+  $aiSettings.classList.toggle('is-hidden');
+}
+
+function setStatus(msg, isErr) {
+  $aiStatus.textContent = msg || '';
+  $aiStatus.classList.toggle('err', !!isErr);
+}
+
+async function aiGenerate() {
+  const topic = $topic.value.trim();
+  if (!topic) {
+    setStatus('請先輸入主題', true);
+    return;
+  }
+  const key = localStorage.getItem('wei_anthropic_key');
+  if (!key) {
+    setStatus('還沒設定 API Key，點齒輪設定', true);
+    $aiSettings.classList.remove('is-hidden');
+    return;
+  }
+
+  setStatus('AI 寫作中... (約 15-30 秒)');
+  const btn = document.querySelector('.ai-go');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '✦ 生成中...';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: SYSTEM_PROMPT,
+        messages: [{
+          role: 'user',
+          content: '主題 / 文案：\n\n' + topic + '\n\n請依規格輸出完整 JSON。'
+        }],
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('API ' + res.status + '：' + errText.slice(0, 200));
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+
+    // Extract JSON
+    const m = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\{[\s\S]*\})/);
+    if (!m) throw new Error('AI 回應沒有 JSON 區塊');
+
+    const json = JSON.parse(m[1]);
+
+    // Fill the raw textarea and regenerate
+    $raw.value = JSON.stringify(json, null, 2);
+    generate();
+    setStatus('✓ 生成完成，已套用到預覽');
+    showToast('AI 生成完成');
+  } catch (err) {
+    console.error(err);
+    setStatus('失敗：' + err.message, true);
+    showToast('生成失敗：' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+// Topic textarea: Cmd+Enter triggers AI
+$topic.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    aiGenerate();
+  }
+});
+
+// Brand inputs trigger regenerate
+['brand-name','brand-handle'].forEach(id => {
+  document.getElementById(id).addEventListener('change', generate);
+});
+
+// Initial
+loadAPIKey();
+loadBrand();
+loadSample();
+</script>
+</body>
+</html>
