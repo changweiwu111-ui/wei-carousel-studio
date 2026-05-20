@@ -449,6 +449,23 @@
 
   .settings-section { padding: 4px 0; }
 
+  .help-trigger {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: rgba(232,196,106,0.10);
+    border: .5px solid var(--accent);
+    color: var(--accent);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 24px;
+    text-align: center;
+    padding: 0;
+    transition: all .15s;
+  }
+  .help-trigger:hover { background: var(--accent); color: var(--panel); }
+
   .quick-examples {
     display: flex; gap: 6px; flex-wrap: wrap;
     margin-top: 8px;
@@ -515,8 +532,13 @@
 <div class="studio">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-title">韋總裁輪播生成器</div>
-      <div class="brand-sub">STUDIO ・ v3.1 EDITORIAL</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="brand-title">輪播生成器</div>
+          <div class="brand-sub">STUDIO ・ v3.3 EDITORIAL</div>
+        </div>
+        <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
+      </div>
     </div>
 
     <!-- AI Generator (主要入口) -->
