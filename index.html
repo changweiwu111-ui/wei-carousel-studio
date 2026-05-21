@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.25 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.26 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -2473,7 +2473,7 @@ function parseTextHeuristic(text) {
 // ─── AI providers ─────────────────────────────────────────────────────────
 async function aiGenerateGemini(topic, key) {
   // Try newer model first, fall back to flash if needed
-  const models = ['gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   let lastErr;
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -2501,10 +2501,19 @@ async function aiGenerateGemini(topic, key) {
 }
 
 async function aiGenerateGroq(topic, key) {
-  const models = ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
-  let lastErr;
+  // v3.26 ・ 更新到 2025-2026 現役模型
+  const models = [
+    'llama-3.3-70b-versatile',
+    'meta-llama/llama-4-scout-17b-16e-instruct',
+    'meta-llama/llama-4-maverick-17b-128e-instruct',
+    'qwen/qwen3-32b',
+    'openai/gpt-oss-120b',
+    'llama-3.1-8b-instant',
+  ];
+  const allErrors = [];
   for (const model of models) {
     try {
+      console.log('[Groq] 嘗試模型:', model);
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -2523,16 +2532,26 @@ async function aiGenerateGroq(topic, key) {
       });
       if (!res.ok) {
         const t = await res.text();
-        lastErr = new Error('Groq API ' + res.status + ': ' + t.slice(0, 200));
+        const errMsg = model + ' → ' + res.status + ': ' + t.slice(0, 150);
+        console.warn('[Groq]', errMsg);
+        allErrors.push(errMsg);
+        // 如果是 401/403 (key 問題) — 直接放棄整個 Groq
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('Groq Key 無效或被吊銷 (' + res.status + ')');
+        }
         continue;
       }
       const data = await res.json();
+      console.log('[Groq] ✓ 成功用模型:', model);
       return data.choices?.[0]?.message?.content || '';
     } catch (e) {
-      lastErr = e;
+      if (String(e).includes('Key 無效')) throw e;
+      const errMsg = model + ' → ' + (e.message || e);
+      console.warn('[Groq]', errMsg);
+      allErrors.push(errMsg);
     }
   }
-  throw lastErr || new Error('Groq API 失敗');
+  throw new Error('Groq 所有模型都失敗：\n' + allErrors.join('\n'));
 }
 
 async function aiGenerateMistral(topic, key) {
