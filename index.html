@@ -548,7 +548,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.7 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.8 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1043,12 +1043,13 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:68px 56px 96px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:30px; font-weight:900; letter-spacing:.05em; line-height:1.55; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:30px; font-weight:900; letter-spacing:.05em; line-height:1.55; max-width:100%; }
+  .cover-v2-title > div { white-space:nowrap; overflow:hidden; max-width:100%; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:13px; line-height:2.1; letter-spacing:.04em; }
   .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:90px 56px 96px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:32px; font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; }
+  .spread-title { font-size:32px; font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; max-width:100%; overflow:hidden; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
   .spread-left .spread-rule { margin-left:0; }
@@ -1170,12 +1171,13 @@ ${content.hashtags||'#理財規劃 #個人理財 #保險規劃 #財務自由 #ET
 </head><body>
 <div class="tabs">${['V','I','R','R','A','A','L'].map((v,i) => `<button class="tab${i===0?' is-active':''}" onclick="goto(${i})">${v}</button>`).join('')}</div>
 <div class="stage-wrap">
-  <button class="arrow" onclick="prev()">‹</button>
+  <button class="arrow" id="arrow-prev" onclick="prev()">‹</button>
   <div class="stage" id="stage">
     ${slideHTML}
     <div class="dots">${dots}</div>
+    <div id="nav-status" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:rgba(28,28,30,.6);background:rgba(255,255,255,.85);padding:6px 14px;border-radius:99px;z-index:30;pointer-events:none;backdrop-filter:blur(4px);">1 / 7</div>
   </div>
-  <button class="arrow" onclick="next()">›</button>
+  <button class="arrow" id="arrow-next" onclick="next()">›</button>
 </div>
 <div class="panel">
   <div class="panel-tabs">
@@ -1195,28 +1197,23 @@ EXPORT PNG：當前那張匯出 ・ EXPORT ALL：全部 7 張</div>
 let cur=0, activeTab=0; const total=7;
 const _safe=(fn,name)=>{try{return fn();}catch(e){console.error('['+name+']',e);}};
 
-function goto(i){
-  console.log('[GOTO] click ->', i, 'from', cur);
-  _safe(()=>{
-    const s=document.querySelectorAll('.sl');
-    const d=document.querySelectorAll('.dot');
-    const t=document.querySelectorAll('.tab');
-    console.log('[GOTO] found slides:', s.length, 'dots:', d.length, 'tabs:', t.length);
-    if(!s.length)return;
-    i=((i%s.length)+s.length)%s.length;
-    if(s[cur])s[cur].classList.remove('is-active');
-    if(d[cur])d[cur].classList.remove('is-active');
-    if(t[cur])t[cur].classList.remove('is-active');
-    cur=i;
-    if(s[i])s[i].classList.add('is-active');
-    if(d[i])d[i].classList.add('is-active');
-    if(t[i])t[i].classList.add('is-active');
-    console.log('[GOTO] now on', i);
-    setTimeout(autoFit,30);
-  },'goto');
-}
-function prev(){goto((cur-1+total)%total);}
-function next(){goto((cur+1)%total);}
+window.goto=function(i){
+  console.log('[GOTO]',i,'from',cur);
+  const s=document.querySelectorAll('.sl');
+  if(!s.length){console.warn('[GOTO] no slides');return;}
+  i=((i%s.length)+s.length)%s.length;
+  // 一次性 toggle，不依賴 cur 變數狀態
+  s.forEach((sl,idx)=>sl.classList.toggle('is-active',idx===i));
+  document.querySelectorAll('.dot').forEach((d,idx)=>d.classList.toggle('is-active',idx===i));
+  document.querySelectorAll('.tab').forEach((t,idx)=>t.classList.toggle('is-active',idx===i));
+  cur=i;
+  // 顯示當前頁數
+  const ns=document.getElementById('nav-status');
+  if(ns)ns.textContent=(i+1)+' / '+s.length;
+  setTimeout(autoFit,30);
+};
+window.prev=function(){console.log('[PREV] from',cur);goto((cur-1+total)%total);};
+window.next=function(){console.log('[NEXT] from',cur);goto((cur+1)%total);};
 
 function autoFit(){_safe(()=>{
   const active=document.querySelector('.sl.is-active');
@@ -1273,13 +1270,22 @@ _safe(()=>{document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.chil
 document.addEventListener('keydown',ev=>{if(ev.target.isContentEditable)return;if(ev.key==='ArrowLeft')prev();if(ev.key==='ArrowRight')next();if(ev.key==='f'||ev.key==='F'){if(!document.fullscreenElement)document.getElementById('stage').requestFullscreen();else document.exitFullscreen();}});
 let tx=0;const stage=document.getElementById('stage');if(stage){stage.addEventListener('touchstart',ev=>tx=ev.touches[0].clientX,{passive:true});stage.addEventListener('touchend',ev=>{const d=ev.changedTouches[0].clientX-tx;if(Math.abs(d)>40)d<0?next():prev();});}
 
-// 等字體載入完再縮字（不然會用 fallback 字體量測，後來真字體載入又跑版）
+// 雙保險：addEventListener 補綁，避免 inline onclick 失效
+_safe(()=>{
+  document.getElementById('arrow-prev')?.addEventListener('click',prev);
+  document.getElementById('arrow-next')?.addEventListener('click',next);
+  document.querySelectorAll('.dot').forEach((d,i)=>d.addEventListener('click',()=>goto(i)));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.addEventListener('click',()=>goto(i)));
+  document.querySelectorAll('.panel-tab').forEach((b,i)=>b.addEventListener('click',()=>tab(i)));
+},'bind');
+
+// 等字體載入完再縮字
 if(document.fonts&&document.fonts.ready){
   document.fonts.ready.then(()=>{setTimeout(autoFit,50);});
 }
 setTimeout(autoFit,300);
 setTimeout(autoFit,1500);
-console.log('[STUDIO] iframe loaded, total slides:', document.querySelectorAll('.sl').length);
+console.log('[STUDIO] iframe loaded, slides:', document.querySelectorAll('.sl').length, 'dots:', document.querySelectorAll('.dot').length, 'tabs:', document.querySelectorAll('.tab').length);
 <\/script>
 </body></html>`;
 }
