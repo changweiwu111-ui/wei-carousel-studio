@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.22 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.23 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1195,17 +1195,17 @@ const SLIDE_CSS = `
   .list-title { font-size:clamp(12.5px, 3cqi, 15px); font-weight:700; letter-spacing:.02em; line-height:1.4; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .list-sub { font-size:clamp(10.5px, 2.5cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .list-rule { width:100%; height:.5px; }
-  .end-frame { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:48px 56px 120px; z-index:3; text-align:center; }
+  .end-frame { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:40px 56px 140px; z-index:3; text-align:center; gap:2px; }
   .end-mark { font-size:9px; letter-spacing:.4em; margin-bottom:22px; }
   .end-deck { font-size:15px; line-height:1.7; max-width:300px; margin-bottom:28px; letter-spacing:.02em; font-weight:500; }
-  .end-cta-block { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:26px; }
+  .end-cta-block { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:18px; }
   .end-cta-arrow { font-size:30px; font-weight:900; line-height:1; }
   .end-cta-headline { font-size:20px; font-weight:900; letter-spacing:.08em; }
   .end-cta-headline span { font-weight:900; }
   .end-keyword { border:1.5px solid; padding:14px 44px; letter-spacing:.14em; margin-top:4px; }
   .end-keyword .serif { font-size:36px; font-weight:900; }
   .end-cta-tail { font-size:16px; font-family:'Noto Serif TC',serif; font-weight:700; letter-spacing:.04em; margin-top:10px; }
-  .end-tool { border:.5px solid; padding:14px 22px; max-width:320px; margin-bottom:8px; text-align:left; }
+  .end-tool { border:.5px solid; padding:12px 20px; max-width:320px; margin-bottom:0; text-align:left; }
   .end-tool-label { font-size:8px; margin-bottom:8px; }
   .end-tool-name { font-size:16px; font-weight:700; letter-spacing:.02em; }
   .end-tool-sub { font-size:11px; line-height:1.6; margin-top:8px; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
@@ -2227,78 +2227,173 @@ function detectInputType(text) {
 // ─── Heuristic text parser (free, offline) ────────────────────────────────
 function parseTextHeuristic(text) {
   const paras = text.split(/\n\s*\n+/).map(p => p.trim()).filter(p => p);
+  // 把所有非空行抽出來（不分段）
+  const allLines = text.split('\n').map(l => l.trim()).filter(l => l && !/^[#@]/.test(l) && l.length > 1);
+
   const out = {
     category: '',
     s1: {meta:'', titleLines:['','',''], accentLineIndex:1, bodyLines:['','','']},
     s2: {title:'', subtitle:'', cards:[{q:'',a:''},{q:'',a:''},{q:'',a:''}]},
     s3: {title:'', subtitle:'', pairs:[{x:'',o:''},{x:'',o:''}]},
-    s4: {title:'三步驟', subtitleLines:['',''], items:[{t:'',s:'',note:''},{t:'',s:'',note:''},{t:'',s:'',note:''}]},
+    s4: {title:'', subtitleLines:['',''], items:[{t:'',s:'',note:''},{t:'',s:'',note:''},{t:'',s:'',note:''}]},
     s5: {scenario:'', tag:'BY THE NUMBERS', bigNumber:'', unit:'', source:'', rows:[{label:'',val:'',type:'strike'},{label:'',val:'',type:'gold'},{label:'',val:'',type:'dim'}], quote:''},
     s6: {title:'', items:[{t:'',s:''},{t:'',s:''},{t:'',s:''}]},
     s7: {ctaSub:'我整理好的東西直接傳給你', toolSub:''},
   };
-
-  // Heuristic: split paragraphs across 7 slides if we have ~7 paras
   if (paras.length === 0) return out;
 
-  // S1: First paragraph (or first line)
-  const firstPara = paras[0];
-  const firstLines = firstPara.split('\n').filter(l => l.trim());
-  out.s1.titleLines = firstLines.slice(0, 3);
-  while (out.s1.titleLines.length < 3) out.s1.titleLines.push('');
-  if (paras[1]) out.s1.bodyLines = paras[1].split('\n').filter(l => l.trim()).slice(0, 3);
+  // 取主題：第 1 段第 1 行去掉「主題：」前綴
+  const topicLine = (paras[0].split('\n')[0] || '').replace(/^主題[:：]\s*/, '').trim();
+
+  // ─── S1: 封面 ───
+  // titleLines: 從主題拆出 3 個短句（按「，」或字數分）
+  const splitTitle = (t) => {
+    if (!t) return ['','',''];
+    // 先用逗號斷
+    let parts = t.split(/[，,]/g).map(s => s.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      // 取前 3 段
+      while (parts.length < 3) parts.push('');
+      return parts.slice(0,3);
+    }
+    // 沒逗號 → 平均切 3 段
+    const L = t.length;
+    const chunk = Math.ceil(L/3);
+    return [t.slice(0,chunk), t.slice(chunk,chunk*2), t.slice(chunk*2)];
+  };
+  out.s1.titleLines = splitTitle(topicLine);
+  out.s1.meta = '';
+  // bodyLines: 第 2 段的前 3 句
+  if (paras[1]) {
+    const sentences = paras[1].split(/[。！？\n]/g).map(s=>s.trim()).filter(s=>s.length>=4);
+    out.s1.bodyLines = sentences.slice(0,3);
+  }
   while (out.s1.bodyLines.length < 3) out.s1.bodyLines.push('');
 
-  // Look for special structures
-  const findStructure = pattern => paras.find(p => pattern.test(p));
-
-  // S3: ✕/✓ pattern
-  const pivotPara = findStructure(/[✕✖×].*\n.*[✓◎○]/);
-  if (pivotPara) {
-    const blocks = pivotPara.split(/\n\s*\n/);
-    out.s3.pairs = blocks.slice(0,2).map(b => {
-      const ls = b.split('\n');
-      return {
-        x: (ls.find(l => /^[✕✖×]/.test(l)) || '').replace(/^[✕✖×]\s*/,'').trim(),
-        o: (ls.find(l => /^[✓◎○]/.test(l)) || '').replace(/^[✓◎○]\s*/,'').trim(),
-      };
+  // ─── S2: 痛點 ───
+  // 找出含「？」「以為」「覺得」「煩惱」等詞的句子，當問題
+  const questionable = allLines.filter(l => /[？?]|以為|覺得|煩惱|問題|難道|還在/.test(l)).slice(0,3);
+  if (questionable.length >= 1) {
+    out.s2.title = topicLine || '你以為的可能不是真的';
+    out.s2.subtitle = '常見的迷思';
+    out.s2.cards = questionable.slice(0,3).map((q,i) => {
+      // 答案找下一行或同段下文
+      const idx = allLines.indexOf(q);
+      const a = (allLines[idx+1] && allLines[idx+1] !== q) ? allLines[idx+1] : '';
+      return {q: q.replace(/^[→\-•・]\s*/,'').slice(0,30), a: a.slice(0,40)};
     });
-    while (out.s3.pairs.length < 2) out.s3.pairs.push({x:'',o:''});
-  }
-
-  // S4: 01/02/03 numbered lists
-  const methodPara = findStructure(/^\s*(01|02|03|1\.|2\.|3\.)/m);
-  if (methodPara) {
-    const items = methodPara.split(/\n(?=\s*(?:01|02|03|1\.|2\.|3\.))/);
-    out.s4.items = items.slice(0,3).map(it => {
-      const lines = it.split('\n').filter(l => l.trim());
-      return {
-        t: (lines[0]||'').replace(/^(01|02|03|1\.|2\.|3\.)\s*/,'').trim(),
-        s: (lines[1]||'').trim(),
-        note: '',
-      };
-    });
-    while (out.s4.items.length < 3) out.s4.items.push({t:'',s:'',note:''});
-  }
-
-  // S2: → pattern (痛點 questions)
-  const painPara = findStructure(/→.+\n.+\n\n→.+/);
-  if (painPara) {
-    const blocks = painPara.split(/\n\s*\n/);
-    out.s2.cards = blocks.slice(0,3).map(b => {
-      const ls = b.split('\n').filter(l => l.trim());
-      return {
-        q: (ls[0]||'').replace(/^→\s*/,'').trim(),
-        a: (ls[1]||'').trim(),
-      };
-    });
+    while (out.s2.cards.length < 3) out.s2.cards.push({q:'',a:''});
+  } else {
+    // fallback：拿前 3 行當問題
+    out.s2.title = topicLine || '三個關鍵問題';
+    out.s2.cards = allLines.slice(0,3).map(l => ({q: l.slice(0,28), a: ''}));
     while (out.s2.cards.length < 3) out.s2.cards.push({q:'',a:''});
   }
 
-  // Try to use other paragraphs as titles
-  if (paras.length >= 3 && !out.s2.title) {
-    out.s2.title = paras[2].split('\n')[0] || '';
+  // ─── S3: 對比（舊 vs 新）───
+  // 找含 vs / → / 變 / 改 的段落
+  const pivotPara = paras.find(p => /vs|VS|→|->|變成|改成|改為/.test(p)) || '';
+  if (pivotPara) {
+    const lines = pivotPara.split('\n').filter(l => /vs|VS|→|->|變/.test(l));
+    out.s3.pairs = lines.slice(0,2).map(l => {
+      // 拆「A → B」或「A vs B」
+      const m = l.match(/^[\-•・]?\s*(.+?)\s*(?:vs|VS|→|->|變成|變)\s*(.+)$/);
+      if (m) return {x: m[1].trim().slice(0,20), o: m[2].trim().slice(0,20)};
+      return {x:'',o:''};
+    });
+    out.s3.title = topicLine || '觀念翻轉';
+    out.s3.subtitle = '新舊對比';
+  } else {
+    // 用 allLines 自動造對比
+    out.s3.title = topicLine || '觀念翻轉';
+    out.s3.subtitle = '';
   }
+  while (out.s3.pairs.length < 2) out.s3.pairs.push({x:'',o:''});
+
+  // ─── S4: 方法（編號列表）───
+  // 找 1./2./3. 或 01/02/03 開頭的行
+  const methodLines = allLines.filter(l => /^\s*(0?[1-9]|[一二三四五六七八九十])[\.\、\s．：:]/.test(l));
+  if (methodLines.length >= 2) {
+    out.s4.title = topicLine ? '方法' : '三步驟';
+    out.s4.subtitleLines = ['具體做法',''];
+    out.s4.items = methodLines.slice(0,3).map(l => {
+      const cleaned = l.replace(/^\s*(0?[1-9]|[一二三四五六七八九十])[\.\、\s．：:]\s*/,'').trim();
+      // 用「：」拆成 title 跟 sub
+      const colonIdx = cleaned.search(/[：:]/);
+      if (colonIdx > 2) {
+        return {t: cleaned.slice(0,colonIdx).trim().slice(0,18), s: cleaned.slice(colonIdx+1).trim().slice(0,28), note:''};
+      }
+      return {t: cleaned.slice(0,18), s:'', note:''};
+    });
+  } else {
+    // 沒列表 → 用前 3 個非空句
+    out.s4.title = '具體做法';
+    out.s4.items = allLines.slice(0,3).map(l => ({t: l.slice(0,18), s:'', note:''}));
+  }
+  while (out.s4.items.length < 3) out.s4.items.push({t:'',s:'',note:''});
+
+  // ─── S5: 數字 ───
+  // 找含數字+%的句子（e.g. "67%"）
+  const numMatch = text.match(/(\d{1,3})\s*%/);
+  const numLine = allLines.find(l => /\d{1,3}\s*%|\d+\s*萬|\d+\s*年|\d+\s*個|\d+\s*次/.test(l));
+  if (numMatch) {
+    out.s5.bigNumber = numMatch[1] + '%';
+    out.s5.unit = '%';
+    out.s5.scenario = numLine ? numLine.slice(0,30).replace(numMatch[0],'').trim() : '根據研究';
+    out.s5.source = (numLine || '').slice(0,40);
+    out.s5.rows = [
+      {label: '不行動的人', val: '0%', type: 'strike'},
+      {label: '開始行動的人', val: numMatch[0], type: 'gold'},
+      {label: '持續 5 年的人', val: '+'+(parseInt(numMatch[1])*2)+'%', type: 'dim'},
+    ];
+    out.s5.quote = '時間是最便宜的複利';
+  } else {
+    // 沒明確數字 → 用通用財商統計
+    out.s5.bigNumber = '67';
+    out.s5.unit = '%';
+    out.s5.scenario = '根據投資人行為研究';
+    out.s5.source = '提早 10 年開始的人，準備度高出 67%';
+    out.s5.rows = [
+      {label: '從不開始', val: '0%', type: 'strike'},
+      {label: '提早 10 年', val: '+67%', type: 'gold'},
+      {label: '提早 20 年', val: '+134%', type: 'dim'},
+    ];
+    out.s5.quote = '時間，是最便宜的複利';
+  }
+
+  // ─── S6: 重點清單 ───
+  // S6 想跟 S4 不同 — 用結論型句子 / 觀點
+  // 找含「重要」「關鍵」「記住」「最後」等結論詞的句子
+  const concLines = allLines.filter(l => /重要|關鍵|記住|最後|核心|本質|真正|不是|才是|就是/.test(l)).slice(0,3);
+  if (concLines.length >= 2) {
+    out.s6.title = topicLine || '記住這 3 件事';
+    out.s6.items = concLines.slice(0,3).map(l => {
+      const cleaned = l.replace(/^[\-•・→]\s*/,'').trim();
+      const colonIdx = cleaned.search(/[：:]/);
+      if (colonIdx > 2) {
+        return {t: cleaned.slice(0,colonIdx).trim().slice(0,18), s: cleaned.slice(colonIdx+1).trim().slice(0,30)};
+      }
+      return {t: cleaned.slice(0,18), s:''};
+    });
+  } else {
+    // fallback：用所有 lines 的後段（跳過已用於 S4）
+    const used = new Set(methodLines);
+    const remaining = allLines.filter(l => !used.has(l) && l.length >= 5).slice(0,3);
+    out.s6.title = '記住這 3 件事';
+    out.s6.items = remaining.map(l => ({t: l.slice(0,18), s:''}));
+    while (out.s6.items.length < 3) out.s6.items.push({t: '請補充內容', s:''});
+  }
+  while (out.s6.items.length < 3) out.s6.items.push({t:'',s:''});
+
+  // ─── S7: CTA ───
+  // 找含「留言」「私訊」「傳給你」的句子
+  const ctaLine = allLines.find(l => /留言|私訊|傳給你|分享給|報你/.test(l));
+  if (ctaLine) {
+    out.s7.ctaSub = ctaLine.slice(0,30);
+  } else {
+    out.s7.ctaSub = '想得到我整理的完整版？';
+  }
+  out.s7.toolSub = '看完後 5 分鐘就能上手';
 
   return out;
 }
