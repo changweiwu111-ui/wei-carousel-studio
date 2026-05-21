@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.13 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.14 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1089,14 +1089,14 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:30px; font-weight:900; letter-spacing:.05em; line-height:1.55; max-width:100%; width:100%; }
-  .cover-v2-title > div { white-space:nowrap; max-width:100%; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:26px; font-weight:900; letter-spacing:.04em; line-height:1.5; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; }
+  .cover-v2-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:13px; line-height:2.1; letter-spacing:.04em; }
   .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:48px 56px 120px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:32px; font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; max-width:100%; width:100%; }
-  .spread-title > div { white-space:nowrap; max-width:100%; }
+  .spread-title { font-size:26px; font-weight:900; line-height:1.3; letter-spacing:.025em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; }
+  .spread-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
   .spread-left .spread-rule { margin-left:0; }
@@ -1267,25 +1267,45 @@ window.next=function(){console.log('[NEXT] from',cur);goto((cur+1)%total);};
 function autoFit(){_safe(()=>{
   const active=document.querySelector('.sl.is-active');
   if(!active)return;
-  // 標題每一行（含 cover-v2-title > div、spread-title > div、單行 spread-title）
-  const targets=active.querySelectorAll('.cover-v2-title > div, .spread-title > div, .spread-title, .data-big, .end-keyword .serif, .end-cta-headline');
+  // 階段 1：縮個別元素（標題行、大數字、CTA 關鍵字等）
+  const targets=active.querySelectorAll('.cover-v2-title > div, .spread-title > div, .spread-title, .data-big, .end-keyword .serif, .end-cta-headline, .list-title, .protocol-title, .excerpt-q, .pivot-text');
   targets.forEach(el=>{
-    // 跳過已被當作容器的 spread-title（有 children）
+    // 跳過 spread-title 容器（如果它有 child div，由 child 自己縮）
     if(el.classList.contains('spread-title') && el.children.length>0) return;
     if(!el.dataset._fit){el.dataset._fit=getComputedStyle(el).fontSize;}
     el.style.fontSize=el.dataset._fit;
     let size=parseFloat(el.dataset._fit);
+    const minSize=size>40?28:(size>20?14:11);
     let attempts=0;
-    // 對 nowrap 元素：scrollWidth > clientWidth 表示溢出
-    // 對自由 wrap 元素：scrollHeight > 1.4x lineHeight 表示換行了
-    while(attempts<60 && size>11){
+    while(attempts<80 && size>minSize){
       const overflowH=el.scrollWidth>el.clientWidth+1;
-      const lh=parseFloat(getComputedStyle(el).lineHeight);
-      const overflowV=el.children.length===0 && el.scrollHeight>lh*1.4;
+      const lh=parseFloat(getComputedStyle(el).lineHeight)||size*1.4;
+      // 允許 2-3 行 wrap，但不允許 4 行以上
+      const maxLines=el.classList.contains('spread-title')||el.parentElement?.classList.contains('spread-title')||el.classList.contains('cover-v2-title')||el.parentElement?.classList.contains('cover-v2-title')?3:2;
+      const overflowV=el.scrollHeight>lh*(maxLines+0.3);
       if(!overflowH && !overflowV)break;
-      size-=1;
+      size-=0.5;
       el.style.fontSize=size+'px';
       attempts++;
+    }
+  });
+  // 階段 2：整頁高度檢查 — 如果內容區還是超出 frame，整體再縮一次
+  ['.spread', '.cover-v2', '.end-frame'].forEach(sel=>{
+    const frame=active.querySelector(sel);
+    if(!frame)return;
+    const slH=active.clientHeight;
+    if(frame.scrollHeight>slH+2){
+      // 內容溢出底部 → 找所有可縮的子標題再縮 5-15%
+      let extraScale=0.95;
+      let guard=0;
+      while(frame.scrollHeight>slH && extraScale>0.7 && guard<8){
+        targets.forEach(el=>{
+          if(el.classList.contains('spread-title') && el.children.length>0) return;
+          const cur=parseFloat(el.style.fontSize)||parseFloat(getComputedStyle(el).fontSize);
+          if(cur>10) el.style.fontSize=(cur*extraScale)+'px';
+        });
+        extraScale-=0.05; guard++;
+      }
     }
   });
 },'autoFit');}
