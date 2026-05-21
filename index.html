@@ -521,7 +521,10 @@
     <div class="onboard-step">
       <div class="onboard-step-num">02</div>
       <div class="onboard-step-text">
-        <strong>申請免費 Gemini Key</strong>（推薦，1500 次/天免費）：<a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a><br>
+        <strong>申請免費 AI Key</strong>（任一個即可，1 分鐘搞定）：<br>
+        ⭐ <a href="https://console.groq.com/keys" target="_blank">Groq</a>（最推薦，免信用卡，14,400 次/天）<br>
+        ・ <a href="https://console.mistral.ai/api-keys" target="_blank">Mistral</a>（免信用卡，1 億 token/月）<br>
+        ・ <a href="https://aistudio.google.com/apikey" target="_blank">Gemini</a>（有時被擋，可換上面兩個）<br>
         拿到 Key 後點上方齒輪 ⚙ 貼進去。<span style="opacity:.6">不申請也能用基本解析。</span>
       </div>
     </div>
@@ -577,7 +580,33 @@
 
       <div id="ai-settings" class="ai-settings is-hidden">
         <div class="settings-section">
-          <label class="ftiny">⭐ Gemini API Key（推薦 ・ Google 免費 1500 次/天）</label>
+          <label class="ftiny">⭐ Groq API Key（最推薦 ・ 免費 14,400 次/天 ・ 秒速）</label>
+          <input class="input" type="password" id="groq-key-input"
+            placeholder="gsk_...">
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="src-btn" onclick="saveGroqKey()" style="flex:1">儲存</button>
+            <button class="src-btn" onclick="clearGroqKey()" style="flex:1">清除</button>
+          </div>
+          <div class="api-hint">
+            從 <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a>（Email 註冊，免信用卡，1 分鐘）
+          </div>
+        </div>
+
+        <div class="settings-section" style="margin-top:14px;border-top:.5px solid var(--rule);padding-top:14px">
+          <label class="ftiny">Mistral API Key（免費 1 億 token / 月）</label>
+          <input class="input" type="password" id="mistral-key-input"
+            placeholder="...">
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="src-btn" onclick="saveMistralKey()" style="flex:1">儲存</button>
+            <button class="src-btn" onclick="clearMistralKey()" style="flex:1">清除</button>
+          </div>
+          <div class="api-hint">
+            從 <a href="https://console.mistral.ai/api-keys" target="_blank" style="color:var(--accent)">console.mistral.ai/api-keys</a>（免信用卡）
+          </div>
+        </div>
+
+        <div class="settings-section" style="margin-top:14px;border-top:.5px solid var(--rule);padding-top:14px">
+          <label class="ftiny">Gemini API Key（Google ・ 常被擋）</label>
           <input class="input" type="password" id="gemini-key-input"
             placeholder="AIzaSy...">
           <div style="display:flex;gap:6px;margin-top:8px">
@@ -585,7 +614,7 @@
             <button class="src-btn" onclick="clearGeminiKey()" style="flex:1">清除</button>
           </div>
           <div class="api-hint">
-            從 <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> 取得（1 分鐘，免信用卡）。
+            從 <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a>
           </div>
         </div>
 
@@ -598,21 +627,20 @@
             <button class="src-btn" onclick="clearAPIKey()" style="flex:1">清除</button>
           </div>
           <div class="api-hint">
-            從 <code>console.anthropic.com</code> 取得。每張輪播約 $0.01-0.03。
+            從 <code>console.anthropic.com</code>（每張約 $0.01-0.03）
           </div>
         </div>
 
         <div class="settings-section" style="margin-top:14px;border-top:.5px solid var(--rule);padding-top:14px">
           <label class="ftiny">AI 服務優先順序</label>
           <select class="input" id="ai-provider" onchange="saveProvider()">
-            <option value="auto">自動（Gemini → Anthropic → 啟發式解析）</option>
+            <option value="auto">自動（Groq → Mistral → Gemini → Anthropic → 啟發式）</option>
+            <option value="groq">只用 Groq</option>
+            <option value="mistral">只用 Mistral</option>
             <option value="gemini">只用 Gemini</option>
             <option value="anthropic">只用 Anthropic</option>
             <option value="heuristic">不用 AI（啟發式解析）</option>
           </select>
-          <div class="api-hint" style="margin-top:6px">
-            啟發式解析完全免費、不需 key，但品質比 AI 差。
-          </div>
         </div>
       </div>
 
@@ -1680,6 +1708,12 @@ function loadAPIKey() {
   const gk = localStorage.getItem('wei_gemini_key');
   const $gk = document.getElementById('gemini-key-input');
   if ($gk && gk) $gk.value = gk;
+  const grok = localStorage.getItem('wei_groq_key');
+  const $grok = document.getElementById('groq-key-input');
+  if ($grok && grok) $grok.value = grok;
+  const mk = localStorage.getItem('wei_mistral_key');
+  const $mk = document.getElementById('mistral-key-input');
+  if ($mk && mk) $mk.value = mk;
   const prov = localStorage.getItem('wei_ai_provider') || 'auto';
   const $prov = document.getElementById('ai-provider');
   if ($prov) $prov.value = prov;
@@ -1712,6 +1746,34 @@ function clearGeminiKey() {
   localStorage.removeItem('wei_gemini_key');
   document.getElementById('gemini-key-input').value = '';
   showToast('Gemini Key 已清除');
+}
+function saveGroqKey() {
+  const k = document.getElementById('groq-key-input').value.trim();
+  if (!k.startsWith('gsk_')) {
+    showToast('Groq Key 應該是 gsk_ 開頭', true);
+    return;
+  }
+  localStorage.setItem('wei_groq_key', k);
+  showToast('Groq Key 已儲存');
+}
+function clearGroqKey() {
+  localStorage.removeItem('wei_groq_key');
+  document.getElementById('groq-key-input').value = '';
+  showToast('Groq Key 已清除');
+}
+function saveMistralKey() {
+  const k = document.getElementById('mistral-key-input').value.trim();
+  if (k.length < 10) {
+    showToast('Mistral Key 看起來不對', true);
+    return;
+  }
+  localStorage.setItem('wei_mistral_key', k);
+  showToast('Mistral Key 已儲存');
+}
+function clearMistralKey() {
+  localStorage.removeItem('wei_mistral_key');
+  document.getElementById('mistral-key-input').value = '';
+  showToast('Mistral Key 已清除');
 }
 function saveProvider() {
   const v = document.getElementById('ai-provider').value;
@@ -1849,6 +1911,77 @@ async function aiGenerateGemini(topic, key) {
   throw lastErr || new Error('Gemini API 失敗');
 }
 
+async function aiGenerateGroq(topic, key) {
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
+  let lastErr;
+  for (const model of models) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {role: 'system', content: SYSTEM_PROMPT},
+            {role: 'user', content: '主題 / 文案：\n\n' + topic + '\n\n請依規格輸出完整 JSON。'},
+          ],
+          temperature: 0.7,
+          max_tokens: 4000,
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        lastErr = new Error('Groq API ' + res.status + ': ' + t.slice(0, 200));
+        continue;
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || '';
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Groq API 失敗');
+}
+
+async function aiGenerateMistral(topic, key) {
+  const models = ['mistral-large-latest', 'mistral-small-latest'];
+  let lastErr;
+  for (const model of models) {
+    try {
+      const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {role: 'system', content: SYSTEM_PROMPT},
+            {role: 'user', content: '主題 / 文案：\n\n' + topic + '\n\n請依規格輸出完整 JSON。'},
+          ],
+          temperature: 0.7,
+          max_tokens: 4000,
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        lastErr = new Error('Mistral API ' + res.status + ': ' + t.slice(0, 200));
+        continue;
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || '';
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Mistral API 失敗');
+}
+
 async function aiGenerateAnthropic(topic, key) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1936,48 +2069,78 @@ async function smartGenerate() {
     const provider = localStorage.getItem('wei_ai_provider') || 'auto';
     const geminiKey = localStorage.getItem('wei_gemini_key');
     const anthropicKey = localStorage.getItem('wei_anthropic_key');
+    const groqKey = localStorage.getItem('wei_groq_key');
+    const mistralKey = localStorage.getItem('wei_mistral_key');
 
     let aiText = null;
     let usedProvider = null;
 
-    const tryGemini = async () => {
-      if (geminiKey) {
-        try {
-          btn.textContent = '✦ Gemini 寫作中...';
-          setStatus('用 Gemini AI 生成（10-20 秒）');
-          const r = await aiGenerateGemini(text, geminiKey);
-          aiText = r;
-          usedProvider = 'Gemini';
-          return true;
-        } catch (e) {
-          console.warn('Gemini 失敗：', e);
-          setStatus('Gemini 失敗，嘗試其他方法...', true);
-          return false;
-        }
+    const tryGroq = async () => {
+      if (!groqKey) return false;
+      try {
+        btn.textContent = '✦ Groq 寫作中...';
+        setStatus('用 Groq AI 生成（5-10 秒）');
+        aiText = await aiGenerateGroq(text, groqKey);
+        usedProvider = 'Groq';
+        return true;
+      } catch (e) {
+        console.warn('Groq 失敗：', e);
+        setStatus('Groq 失敗，嘗試其他...', true);
+        return false;
       }
-      return false;
+    };
+
+    const tryMistral = async () => {
+      if (!mistralKey) return false;
+      try {
+        btn.textContent = '✦ Mistral 寫作中...';
+        setStatus('用 Mistral AI 生成（10-20 秒）');
+        aiText = await aiGenerateMistral(text, mistralKey);
+        usedProvider = 'Mistral';
+        return true;
+      } catch (e) {
+        console.warn('Mistral 失敗：', e);
+        setStatus('Mistral 失敗，嘗試其他...', true);
+        return false;
+      }
+    };
+
+    const tryGemini = async () => {
+      if (!geminiKey) return false;
+      try {
+        btn.textContent = '✦ Gemini 寫作中...';
+        setStatus('用 Gemini AI 生成（10-20 秒）');
+        aiText = await aiGenerateGemini(text, geminiKey);
+        usedProvider = 'Gemini';
+        return true;
+      } catch (e) {
+        console.warn('Gemini 失敗：', e);
+        setStatus('Gemini 失敗，嘗試其他...', true);
+        return false;
+      }
     };
 
     const tryAnthropic = async () => {
-      if (anthropicKey) {
-        try {
-          btn.textContent = '✦ Claude 寫作中...';
-          setStatus('用 Claude AI 生成（15-30 秒）');
-          const r = await aiGenerateAnthropic(text, anthropicKey);
-          aiText = r;
-          usedProvider = 'Claude';
-          return true;
-        } catch (e) {
-          console.warn('Anthropic 失敗：', e);
-          setStatus('Anthropic 失敗，使用其他方法...', true);
-          return false;
-        }
+      if (!anthropicKey) return false;
+      try {
+        btn.textContent = '✦ Claude 寫作中...';
+        setStatus('用 Claude AI 生成（15-30 秒）');
+        aiText = await aiGenerateAnthropic(text, anthropicKey);
+        usedProvider = 'Claude';
+        return true;
+      } catch (e) {
+        console.warn('Anthropic 失敗：', e);
+        setStatus('Anthropic 失敗，嘗試其他...', true);
+        return false;
       }
-      return false;
     };
 
     if (provider === 'auto') {
-      await tryGemini() || await tryAnthropic();
+      await tryGroq() || await tryMistral() || await tryGemini() || await tryAnthropic();
+    } else if (provider === 'groq') {
+      await tryGroq();
+    } else if (provider === 'mistral') {
+      await tryMistral();
     } else if (provider === 'gemini') {
       await tryGemini();
     } else if (provider === 'anthropic') {
