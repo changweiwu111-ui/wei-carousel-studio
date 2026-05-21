@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.20 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.21 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1403,16 +1403,16 @@ function refreshCaption(){_safe(()=>{
   const grab=(sl,sel)=>{if(!sl)return'';const el=sl.querySelector(sel);return el?(el.innerText||'').trim():'';};
   const s1Title=sls[0]?[...sls[0].querySelectorAll('.cover-v2-title > div')].map(d=>(d.innerText||'').trim()).filter(Boolean).join(' '):'';
   const s2Sub=grab(sls[1],'.spread-deck');
-  const s3Title=grab(sls[2],'.spread-title').replace(/\n/g,' ');
+  const s3Title=grab(sls[2],'.spread-title').replace(/\\n/g,' ');
   const kw=grab(sls[6],'.end-keyword .serif');
   const tl=grab(sls[6],'.end-tool-name');
   const haEl=document.querySelector('.wm-handle');
   const ha=haEl?(haEl.innerText||'').trim():'';
   const p0=document.getElementById('p0');
   if(!p0)return;
-  const oldLines=(p0.innerText||'').split('\n');
+  const oldLines=(p0.innerText||'').split('\\n');
   const hashLine=oldLines.find(l=>l.trim().startsWith('#'))||'#理財規劃 #個人理財 #財務自由';
-  p0.innerText=s1Title+'\n\n'+s2Sub+'\n\n'+s3Title+'\n\n底下留言「'+kw+'」\n我把'+tl+'傳給你\n\n'+ha+'\n'+hashLine;
+  p0.innerText=s1Title+'\\n\\n'+s2Sub+'\\n\\n'+s3Title+'\\n\\n底下留言「'+kw+'」\\n我把'+tl+'傳給你\\n\\n'+ha+'\\n'+hashLine;
 },'refreshCaption');}
 
 function tab(i){_safe(()=>{
