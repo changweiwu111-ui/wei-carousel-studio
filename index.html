@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.21 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.22 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -2442,6 +2442,27 @@ async function smartGenerate() {
   if (!text) {
     setStatus('請輸入文字或 JSON', true);
     return;
+  }
+
+  // v3.22：輸入長度檢查 — 太短就直接擋，避免生出空殼
+  // 若是 JSON / slides[] 格式，跳過此檢查（已有完整結構）
+  const looksLikeJSON = text.startsWith('{') || text.startsWith('[');
+  if (!looksLikeJSON) {
+    // 去掉空白和簽名行後算淨字數
+    const meaningful = text.replace(/[\s\n]/g, '').replace(/@\w+/g, '').replace(/[#\w]+/g, '');
+    const lines = text.split('\n').filter(l => l.trim().length >= 4);
+    if (meaningful.length < 60 || lines.length < 3) {
+      const msg = `內容太短（${meaningful.length} 字 / ${lines.length} 行）— 請至少提供：
+1. 主題或痛點（誰、為什麼需要看）
+2. 你的觀點或方法（3 個重點）
+3. 具體例子或數字（讓內容有重量）
+4. 給觀眾的 CTA（要他們做什麼）
+
+建議 200-500 字。或按「範例：儲蓄險 / ETF / 現金流」載入範例參考。`;
+      alert(msg);
+      setStatus('內容太短，請補充', true);
+      return;
+    }
   }
 
   const btn = document.querySelector('.ai-go');
