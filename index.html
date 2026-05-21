@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.24 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.25 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -682,6 +682,8 @@
         ✦ 生成輪播
       </button>
       <div class="ai-status" id="ai-status"></div>
+      <!-- v3.25 ・ 顯示目前 AI key 狀態 -->
+      <div id="ai-key-status" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--mute);margin-top:8px;padding:8px 10px;border:.5px solid rgba(245,241,232,.10);border-radius:3px;line-height:1.6"></div>
 
       <!-- 外部直控按鈕（v3.10 - 預覽內按鈕失效時的備援）-->
       <div class="external-nav">
@@ -2152,6 +2154,29 @@ function loadAPIKey() {
   const prov = localStorage.getItem('wei_ai_provider') || 'auto';
   const $prov = document.getElementById('ai-provider');
   if ($prov) $prov.value = prov;
+  updateAIKeyStatus();
+}
+
+function updateAIKeyStatus() {
+  const el = document.getElementById('ai-key-status');
+  if (!el) return;
+  const keys = {
+    Groq: localStorage.getItem('wei_groq_key'),
+    Mistral: localStorage.getItem('wei_mistral_key'),
+    Gemini: localStorage.getItem('wei_gemini_key'),
+    Anthropic: localStorage.getItem('wei_anthropic_key'),
+  };
+  const active = Object.entries(keys).filter(([n,v]) => v).map(([n,v]) => n + ' ✓');
+  const inactive = Object.entries(keys).filter(([n,v]) => !v).map(([n,v]) => n + ' ✗');
+  const provider = localStorage.getItem('wei_ai_provider') || 'auto';
+  const origin = location.origin === 'null' ? 'file://（本地）' : location.origin.replace('https://','').replace('http://','');
+  if (active.length === 0) {
+    el.innerHTML = '<span style="color:#F4B7A6">⚠ 沒有任何 AI KEY ・ 走啟發式（內容會比較陽春）</span><br><span style="opacity:.6">ORIGIN: ' + origin + '</span><br><span style="opacity:.6">→ 點齒輪 ⚙ 設定免費 Groq key</span>';
+    el.style.borderColor = 'rgba(244,183,166,.32)';
+  } else {
+    el.innerHTML = '<span style="color:#A6E0B9">AI KEYS: ' + active.join(' ・ ') + '</span><br><span style="opacity:.5">未設: ' + inactive.join(' ・ ') + ' ・ MODE: ' + provider.toUpperCase() + '</span><br><span style="opacity:.5">ORIGIN: ' + origin + '</span>';
+    el.style.borderColor = 'rgba(166,224,185,.32)';
+  }
 }
 function saveAPIKey() {
   const k = $apiKey.value.trim();
@@ -2161,11 +2186,13 @@ function saveAPIKey() {
   }
   localStorage.setItem('wei_anthropic_key', k);
   showToast('Anthropic Key 已儲存');
+  updateAIKeyStatus();
 }
 function clearAPIKey() {
   localStorage.removeItem('wei_anthropic_key');
   $apiKey.value = '';
   showToast('Anthropic Key 已清除');
+  updateAIKeyStatus();
 }
 function saveGeminiKey() {
   const $gk = document.getElementById('gemini-key-input');
@@ -2176,11 +2203,13 @@ function saveGeminiKey() {
   }
   localStorage.setItem('wei_gemini_key', k);
   showToast('Gemini Key 已儲存');
+  updateAIKeyStatus();
 }
 function clearGeminiKey() {
   localStorage.removeItem('wei_gemini_key');
   document.getElementById('gemini-key-input').value = '';
   showToast('Gemini Key 已清除');
+  updateAIKeyStatus();
 }
 function saveGroqKey() {
   const k = document.getElementById('groq-key-input').value.trim();
@@ -2190,11 +2219,13 @@ function saveGroqKey() {
   }
   localStorage.setItem('wei_groq_key', k);
   showToast('Groq Key 已儲存');
+  updateAIKeyStatus();
 }
 function clearGroqKey() {
   localStorage.removeItem('wei_groq_key');
   document.getElementById('groq-key-input').value = '';
   showToast('Groq Key 已清除');
+  updateAIKeyStatus();
 }
 function saveMistralKey() {
   const k = document.getElementById('mistral-key-input').value.trim();
@@ -2204,11 +2235,13 @@ function saveMistralKey() {
   }
   localStorage.setItem('wei_mistral_key', k);
   showToast('Mistral Key 已儲存');
+  updateAIKeyStatus();
 }
 function clearMistralKey() {
   localStorage.removeItem('wei_mistral_key');
   document.getElementById('mistral-key-input').value = '';
   showToast('Mistral Key 已清除');
+  updateAIKeyStatus();
 }
 function saveProvider() {
   const v = document.getElementById('ai-provider').value;
@@ -2649,65 +2682,90 @@ async function smartGenerate() {
     const groqKey = localStorage.getItem('wei_groq_key');
     const mistralKey = localStorage.getItem('wei_mistral_key');
 
+    // v3.25 ・ AI key 偵測診斷
+    const keysSet = [
+      groqKey ? 'Groq' : null,
+      mistralKey ? 'Mistral' : null,
+      geminiKey ? 'Gemini' : null,
+      anthropicKey ? 'Anthropic' : null,
+    ].filter(Boolean);
+    console.log('[AI] 偵測到 keys:', keysSet, '・ provider:', provider, '・ origin:', location.origin);
+    if (keysSet.length === 0) {
+      console.warn('[AI] localStorage 沒有任何 AI key — 可能 (1) 沒設定 (2) 在不同 origin 設定的 (file:// vs https://)');
+    }
+
     let aiText = null;
     let usedProvider = null;
+    let aiErrors = [];
 
     const tryGroq = async () => {
-      if (!groqKey) return false;
+      if (!groqKey) { aiErrors.push('Groq: 沒 key'); return false; }
       try {
         btn.textContent = '✦ Groq 寫作中...';
         setStatus('用 Groq AI 生成（5-10 秒）');
         aiText = await aiGenerateGroq(text, groqKey);
         usedProvider = 'Groq';
+        console.log('[AI] Groq 成功，回應長度:', (aiText||'').length);
         return true;
       } catch (e) {
-        console.warn('Groq 失敗：', e);
-        setStatus('Groq 失敗，嘗試其他...', true);
+        const errMsg = e.message || String(e);
+        aiErrors.push('Groq: ' + errMsg.slice(0, 150));
+        console.error('[AI] Groq 失敗：', errMsg);
+        setStatus('Groq 失敗：' + errMsg.slice(0,80), true);
         return false;
       }
     };
 
     const tryMistral = async () => {
-      if (!mistralKey) return false;
+      if (!mistralKey) { aiErrors.push('Mistral: 沒 key'); return false; }
       try {
         btn.textContent = '✦ Mistral 寫作中...';
         setStatus('用 Mistral AI 生成（10-20 秒）');
         aiText = await aiGenerateMistral(text, mistralKey);
         usedProvider = 'Mistral';
+        console.log('[AI] Mistral 成功，回應長度:', (aiText||'').length);
         return true;
       } catch (e) {
-        console.warn('Mistral 失敗：', e);
-        setStatus('Mistral 失敗，嘗試其他...', true);
+        const errMsg = e.message || String(e);
+        aiErrors.push('Mistral: ' + errMsg.slice(0, 150));
+        console.error('[AI] Mistral 失敗：', errMsg);
+        setStatus('Mistral 失敗：' + errMsg.slice(0,80), true);
         return false;
       }
     };
 
     const tryGemini = async () => {
-      if (!geminiKey) return false;
+      if (!geminiKey) { aiErrors.push('Gemini: 沒 key'); return false; }
       try {
         btn.textContent = '✦ Gemini 寫作中...';
         setStatus('用 Gemini AI 生成（10-20 秒）');
         aiText = await aiGenerateGemini(text, geminiKey);
         usedProvider = 'Gemini';
+        console.log('[AI] Gemini 成功，回應長度:', (aiText||'').length);
         return true;
       } catch (e) {
-        console.warn('Gemini 失敗：', e);
-        setStatus('Gemini 失敗，嘗試其他...', true);
+        const errMsg = e.message || String(e);
+        aiErrors.push('Gemini: ' + errMsg.slice(0, 150));
+        console.error('[AI] Gemini 失敗：', errMsg);
+        setStatus('Gemini 失敗：' + errMsg.slice(0,80), true);
         return false;
       }
     };
 
     const tryAnthropic = async () => {
-      if (!anthropicKey) return false;
+      if (!anthropicKey) { aiErrors.push('Anthropic: 沒 key'); return false; }
       try {
         btn.textContent = '✦ Claude 寫作中...';
         setStatus('用 Claude AI 生成（15-30 秒）');
         aiText = await aiGenerateAnthropic(text, anthropicKey);
         usedProvider = 'Claude';
+        console.log('[AI] Claude 成功，回應長度:', (aiText||'').length);
         return true;
       } catch (e) {
-        console.warn('Anthropic 失敗：', e);
-        setStatus('Anthropic 失敗，嘗試其他...', true);
+        const errMsg = e.message || String(e);
+        aiErrors.push('Anthropic: ' + errMsg.slice(0, 150));
+        console.error('[AI] Anthropic 失敗：', errMsg);
+        setStatus('Anthropic 失敗：' + errMsg.slice(0,80), true);
         return false;
       }
     };
@@ -2729,14 +2787,24 @@ async function smartGenerate() {
       try {
         json = extractJSON(aiText);
       } catch (e) {
-        setStatus('AI 回應解析失敗，退回啟發式解析', true);
+        const errMsg = 'AI 回應 JSON 解析失敗：' + (e.message || e).slice(0, 100);
+        console.error('[AI] extractJSON 失敗。原文（前 500 字）:', aiText.slice(0, 500));
+        aiErrors.push(errMsg);
+        setStatus(errMsg + ' — 退回啟發式', true);
         aiText = null;
       }
     }
 
     if (!json) {
       btn.textContent = '✦ 啟發式解析中...';
-      setStatus('用啟發式解析（沒 AI key 或 AI 失敗）');
+      // v3.25：把為什麼退回的具體原因 alert 出來
+      if (aiErrors.length > 0 && !aiErrors.every(e => e.endsWith('沒 key'))) {
+        // 有 key 但 AI 真的失敗 — alert 給用戶看
+        const realErrors = aiErrors.filter(e => !e.endsWith('沒 key'));
+        alert('AI 生成失敗（' + realErrors.length + ' 個）：\n\n' + realErrors.join('\n\n') + '\n\n→ 退回啟發式解析\n\n可能原因：\n• Key 失效或被吊銷\n• API quota 用完\n• 網路阻擋\n• 模型代號舊\n\nF12 console 有完整錯誤訊息');
+      } else if (aiErrors.length > 0) {
+        setStatus('沒 AI key — 走啟發式（要好結果請設 Groq key）');
+      }
       json = parseTextHeuristic(text);
       usedProvider = '啟發式解析';
     }
