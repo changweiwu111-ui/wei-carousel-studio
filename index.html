@@ -548,7 +548,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.6 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.7 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1024,8 +1024,9 @@ const SLIDE_CSS = `
   .tab { background:rgba(245,241,232,.06); border:.5px solid rgba(245,241,232,.10); color:rgba(245,241,232,.40); padding:7px 14px; font-size:10px; font-family:'JetBrains Mono',monospace; letter-spacing:.14em; cursor:pointer; border-radius:2px; transition:all .18s; }
   .tab.is-active { background:var(--copper); color:var(--ink); border-color:var(--copper); }
   .stage-wrap { display:flex; align-items:center; gap:8px; width:100%; max-width:520px; }
-  .arrow { background:none; border:none; color:rgba(245,241,232,.22); font-size:30px; cursor:pointer; line-height:1; padding:4px; transition:color .2s; }
-  .arrow:hover { color:rgba(245,241,232,.65); }
+  .arrow { background:rgba(245,241,232,.06); border:.5px solid rgba(245,241,232,.18); color:rgba(245,241,232,.65); font-size:24px; cursor:pointer; line-height:1; padding:10px 12px; border-radius:50%; transition:all .15s; min-width:42px; min-height:42px; display:flex; align-items:center; justify-content:center; user-select:none; z-index:50; position:relative; }
+  .arrow:hover { color:#fff; background:rgba(245,241,232,.18); border-color:rgba(245,241,232,.4); }
+  .arrow:active { transform:scale(.92); }
   .stage { flex:1; aspect-ratio:4/5; position:relative; overflow:hidden; background:var(--cream); border-radius:2px; box-shadow:0 24px 60px -16px rgba(0,0,0,.4), 0 8px 24px -8px rgba(0,0,0,.3); }
   .sl { position:absolute; inset:0; opacity:0; transition:opacity .32s ease; pointer-events:none; font-family:'Inter','Noto Serif TC',sans-serif; overflow:hidden; }
   .sl.is-active { opacity:1; pointer-events:auto; }
@@ -1194,21 +1195,26 @@ EXPORT PNG：當前那張匯出 ・ EXPORT ALL：全部 7 張</div>
 let cur=0, activeTab=0; const total=7;
 const _safe=(fn,name)=>{try{return fn();}catch(e){console.error('['+name+']',e);}};
 
-function goto(i){_safe(()=>{
-  const s=document.querySelectorAll('.sl');
-  const d=document.querySelectorAll('.dot');
-  const t=document.querySelectorAll('.tab');
-  if(!s.length)return;
-  i=((i%s.length)+s.length)%s.length;
-  if(s[cur])s[cur].classList.remove('is-active');
-  if(d[cur])d[cur].classList.remove('is-active');
-  if(t[cur])t[cur].classList.remove('is-active');
-  cur=i;
-  if(s[i])s[i].classList.add('is-active');
-  if(d[i])d[i].classList.add('is-active');
-  if(t[i])t[i].classList.add('is-active');
-  setTimeout(autoFit,30);
-},'goto');}
+function goto(i){
+  console.log('[GOTO] click ->', i, 'from', cur);
+  _safe(()=>{
+    const s=document.querySelectorAll('.sl');
+    const d=document.querySelectorAll('.dot');
+    const t=document.querySelectorAll('.tab');
+    console.log('[GOTO] found slides:', s.length, 'dots:', d.length, 'tabs:', t.length);
+    if(!s.length)return;
+    i=((i%s.length)+s.length)%s.length;
+    if(s[cur])s[cur].classList.remove('is-active');
+    if(d[cur])d[cur].classList.remove('is-active');
+    if(t[cur])t[cur].classList.remove('is-active');
+    cur=i;
+    if(s[i])s[i].classList.add('is-active');
+    if(d[i])d[i].classList.add('is-active');
+    if(t[i])t[i].classList.add('is-active');
+    console.log('[GOTO] now on', i);
+    setTimeout(autoFit,30);
+  },'goto');
+}
 function prev(){goto((cur-1+total)%total);}
 function next(){goto((cur+1)%total);}
 
@@ -1267,8 +1273,13 @@ _safe(()=>{document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.chil
 document.addEventListener('keydown',ev=>{if(ev.target.isContentEditable)return;if(ev.key==='ArrowLeft')prev();if(ev.key==='ArrowRight')next();if(ev.key==='f'||ev.key==='F'){if(!document.fullscreenElement)document.getElementById('stage').requestFullscreen();else document.exitFullscreen();}});
 let tx=0;const stage=document.getElementById('stage');if(stage){stage.addEventListener('touchstart',ev=>tx=ev.touches[0].clientX,{passive:true});stage.addEventListener('touchend',ev=>{const d=ev.changedTouches[0].clientX-tx;if(Math.abs(d)>40)d<0?next():prev();});}
 
-// 初始載入自動縮字
-setTimeout(autoFit,200);
+// 等字體載入完再縮字（不然會用 fallback 字體量測，後來真字體載入又跑版）
+if(document.fonts&&document.fonts.ready){
+  document.fonts.ready.then(()=>{setTimeout(autoFit,50);});
+}
+setTimeout(autoFit,300);
+setTimeout(autoFit,1500);
+console.log('[STUDIO] iframe loaded, total slides:', document.querySelectorAll('.sl').length);
 <\/script>
 </body></html>`;
 }
