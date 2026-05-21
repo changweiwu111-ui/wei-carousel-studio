@@ -548,7 +548,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.8 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.9 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1270,7 +1270,7 @@ _safe(()=>{document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.chil
 document.addEventListener('keydown',ev=>{if(ev.target.isContentEditable)return;if(ev.key==='ArrowLeft')prev();if(ev.key==='ArrowRight')next();if(ev.key==='f'||ev.key==='F'){if(!document.fullscreenElement)document.getElementById('stage').requestFullscreen();else document.exitFullscreen();}});
 let tx=0;const stage=document.getElementById('stage');if(stage){stage.addEventListener('touchstart',ev=>tx=ev.touches[0].clientX,{passive:true});stage.addEventListener('touchend',ev=>{const d=ev.changedTouches[0].clientX-tx;if(Math.abs(d)>40)d<0?next():prev();});}
 
-// 雙保險：addEventListener 補綁，避免 inline onclick 失效
+// 雙保險：addEventListener 補綁
 _safe(()=>{
   document.getElementById('arrow-prev')?.addEventListener('click',prev);
   document.getElementById('arrow-next')?.addEventListener('click',next);
@@ -1278,6 +1278,24 @@ _safe(()=>{
   document.querySelectorAll('.tab').forEach((t,i)=>t.addEventListener('click',()=>goto(i)));
   document.querySelectorAll('.panel-tab').forEach((b,i)=>b.addEventListener('click',()=>tab(i)));
 },'bind');
+
+// 三重保險：body 級事件代理（即使按鈕被遮蔽也能捕捉）
+document.body.addEventListener('click',function(e){
+  const t=e.target;
+  if(!t)return;
+  if(t.id==='arrow-prev'||t.closest('#arrow-prev')){console.log('[BODY-CLICK] prev');e.preventDefault();window.prev();return;}
+  if(t.id==='arrow-next'||t.closest('#arrow-next')){console.log('[BODY-CLICK] next');e.preventDefault();window.next();return;}
+  const dotEl=t.classList.contains('dot')?t:t.closest('.dot');
+  if(dotEl){const dots=[...document.querySelectorAll('.dot')];const i=dots.indexOf(dotEl);if(i>=0){console.log('[BODY-CLICK] dot',i);e.preventDefault();window.goto(i);return;}}
+  const tabEl=t.classList.contains('tab')?t:t.closest('.tab');
+  if(tabEl){const tabs=[...document.querySelectorAll('.tab')];const i=tabs.indexOf(tabEl);if(i>=0){console.log('[BODY-CLICK] tab',i);e.preventDefault();window.goto(i);return;}}
+},true);
+
+// 鎖死頁面狀態：定期輪詢驗證 cur 跟 DOM 狀態一致
+setInterval(()=>{
+  const active=[...document.querySelectorAll('.sl')].findIndex(s=>s.classList.contains('is-active'));
+  if(active>=0&&active!==cur){console.warn('[SYNC] cur mismatch, fixing:', cur, '->', active);cur=active;}
+},2000);
 
 // 等字體載入完再縮字
 if(document.fonts&&document.fonts.ready){
