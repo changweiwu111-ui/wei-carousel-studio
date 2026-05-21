@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.12 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.13 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1081,19 +1081,19 @@ const SLIDE_CSS = `
   .mono { font-family:'JetBrains Mono',monospace; letter-spacing:.12em; }
   .bold { font-weight:700; }
   .top-rule { position:absolute; top:0; left:56px; right:56px; display:flex; justify-content:space-between; align-items:center; padding:36px 0 14px; font-size:9px; border-bottom:.5px solid; z-index:4; }
-  .footer { position:absolute; bottom:36px; left:56px; right:56px; display:flex; justify-content:space-between; align-items:flex-end; z-index:10; }
+  .footer { position:absolute; bottom:0; left:0; right:0; padding:24px 56px 36px; display:flex; justify-content:space-between; align-items:flex-end; z-index:10; pointer-events:none; }
   .wm { display:flex; flex-direction:column; gap:2px; }
   .wm-name { font-family:'Noto Serif TC',serif; font-size:11px; font-weight:500; letter-spacing:.10em; }
   .wm-handle { font-size:9px; letter-spacing:.04em; opacity:.9; }
   .pg { font-size:9px; align-self:flex-end; }
-  .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:68px 56px 96px; z-index:3; }
+  .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
   .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:30px; font-weight:900; letter-spacing:.05em; line-height:1.55; max-width:100%; width:100%; }
   .cover-v2-title > div { white-space:nowrap; max-width:100%; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:13px; line-height:2.1; letter-spacing:.04em; }
-  .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:90px 56px 96px; z-index:3; text-align:center; align-items:center; }
+  .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:48px 56px 120px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
   .spread-title { font-size:32px; font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; max-width:100%; width:100%; }
   .spread-title > div { white-space:nowrap; max-width:100%; }
@@ -1130,13 +1130,13 @@ const SLIDE_CSS = `
   .data-hero { display:flex; align-items:baseline; gap:14px; margin-bottom:14px; flex-wrap:nowrap; }
   .data-big { font-size:72px; font-weight:900; line-height:1; letter-spacing:-.02em; }
   .data-unit { font-size:20px; letter-spacing:.03em; font-weight:600; white-space:nowrap; line-height:1.2; }
-  .data-source { font-size:15px; font-weight:500; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:22px; }
+  .data-source { font-size:14px; font-weight:500; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:16px; }
   .data-rule { width:100%; height:.5px; margin-bottom:14px; }
   .data-table { width:100%; margin-bottom:14px; }
   .data-row { display:flex; justify-content:space-between; padding:9px 0; align-items:baseline; }
   .data-label { font-size:12px; letter-spacing:.02em; }
   .data-val { font-size:14px; }
-  .data-quote { font-size:15px; line-height:1.55; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
+  .data-quote { font-size:14px; line-height:1.55; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-top:4px; }
   .lists { width:100%; }
   .list-row { display:grid; grid-template-columns:40px 1fr; gap:16px; align-items:baseline; padding:14px 0; }
   .list-num { font-size:22px; font-weight:900; line-height:1; letter-spacing:-.02em; }
@@ -1144,7 +1144,7 @@ const SLIDE_CSS = `
   .list-title { font-size:15px; font-weight:700; letter-spacing:.02em; line-height:1.4; }
   .list-sub { font-size:12px; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
   .list-rule { width:100%; height:.5px; }
-  .end-frame { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:90px 56px 96px; z-index:3; text-align:center; }
+  .end-frame { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:48px 56px 120px; z-index:3; text-align:center; }
   .end-mark { font-size:9px; letter-spacing:.4em; margin-bottom:22px; }
   .end-deck { font-size:15px; line-height:1.7; max-width:300px; margin-bottom:28px; letter-spacing:.02em; font-weight:500; }
   .end-cta-block { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:26px; }
@@ -1154,7 +1154,7 @@ const SLIDE_CSS = `
   .end-keyword { border:1.5px solid; padding:14px 44px; letter-spacing:.14em; margin-top:4px; }
   .end-keyword .serif { font-size:36px; font-weight:900; }
   .end-cta-tail { font-size:16px; font-family:'Noto Serif TC',serif; font-weight:700; letter-spacing:.04em; margin-top:10px; }
-  .end-tool { border:.5px solid; padding:16px 22px; max-width:320px; margin-bottom:24px; text-align:left; }
+  .end-tool { border:.5px solid; padding:14px 22px; max-width:320px; margin-bottom:8px; text-align:left; }
   .end-tool-label { font-size:8px; margin-bottom:8px; }
   .end-tool-name { font-size:16px; font-weight:700; letter-spacing:.02em; }
   .end-tool-sub { font-size:11px; line-height:1.6; margin-top:8px; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
