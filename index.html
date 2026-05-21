@@ -487,6 +487,16 @@
     border-color: var(--accent);
     background: rgba(232,196,106,0.10);
   }
+  .voice-btn.is-recording {
+    background: rgba(232,90,80,0.15);
+    border-color: #E25A50;
+    color: #F4B7A6;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .55; }
+  }
 </style>
 </head>
 <body>
@@ -558,6 +568,7 @@
 按下方「生成輪播」會自動判斷 → AI 寫好 → 即時預覽"></textarea>
 
       <div class="quick-examples">
+        <button class="quick-btn voice-btn" onclick="toggleVoice()" title="語音輸入">🎤 語音</button>
         <button class="quick-btn" onclick="quickExample('storage')">範例：儲蓄險</button>
         <button class="quick-btn" onclick="quickExample('etf')">範例：ETF</button>
         <button class="quick-btn" onclick="quickExample('cashflow')">範例：現金流</button>
@@ -2055,6 +2066,60 @@ const QUICK_EXAMPLES = {
 
 3 個月後你會看到差距，不需要加薪，先改變錢的流向。`,
 };
+
+// ─── Voice input (Web Speech API) ───────────────────────────────────────
+let _recognition = null;
+let _isRecording = false;
+function setupVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return false;
+  _recognition = new SR();
+  _recognition.lang = 'zh-TW';
+  _recognition.continuous = true;
+  _recognition.interimResults = false;
+  _recognition.onresult = (event) => {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+    }
+    if (finalTranscript) {
+      $topic.value += (($topic.value.length && !$topic.value.endsWith('\n')) ? '\n' : '') + finalTranscript;
+      saveTopicDraft();
+    }
+  };
+  _recognition.onend = () => {
+    _isRecording = false;
+    const btn = document.querySelector('.voice-btn');
+    if (btn) btn.classList.remove('is-recording');
+    setStatus('語音輸入結束');
+  };
+  _recognition.onerror = (e) => {
+    _isRecording = false;
+    const btn = document.querySelector('.voice-btn');
+    if (btn) btn.classList.remove('is-recording');
+    setStatus('語音輸入錯誤：' + e.error, true);
+  };
+  return true;
+}
+function toggleVoice() {
+  if (!_recognition && !setupVoice()) {
+    showToast('此瀏覽器不支援語音輸入（請用 Chrome 或 Safari）', true);
+    return;
+  }
+  const btn = document.querySelector('.voice-btn');
+  if (_isRecording) {
+    _recognition.stop();
+  } else {
+    try {
+      _recognition.start();
+      _isRecording = true;
+      btn.classList.add('is-recording');
+      setStatus('語音輸入中... 再按一次停止');
+    } catch (e) {
+      setStatus('啟動失敗：' + e.message, true);
+    }
+  }
+}
 
 function quickExample(key) {
   $topic.value = QUICK_EXAMPLES[key] || '';
