@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.18 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.19 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1140,13 +1140,13 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(15px, 5.6cqi, 26px); font-weight:900; letter-spacing:.03em; line-height:1.38; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(14px, 4.8cqi, 24px); font-weight:900; letter-spacing:.03em; line-height:1.38; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:clamp(11px, 2.5cqi, 13px); line-height:2.0; letter-spacing:.04em; }
   .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:48px 56px 120px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:clamp(16px, 6.4cqi, 30px); font-weight:900; line-height:1.26; letter-spacing:.02em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .spread-title { font-size:clamp(15px, 5.4cqi, 27px); font-weight:900; line-height:1.28; letter-spacing:.02em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .spread-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
@@ -1327,21 +1327,48 @@ window.next=function(){console.log('[NEXT] from',cur);goto((cur+1)%total);};
 function autoFit(){_safe(()=>{
   const active=document.querySelector('.sl.is-active');
   if(!active)return;
+  // 階段 0：強制重置先前的 inline font-size，重新測量
+  const titleEls=active.querySelectorAll('.cover-v2-title, .spread-title');
+  titleEls.forEach(t => {
+    // 找出最長的子 div（中文字數）
+    const lines=[...t.children].filter(c=>c.tagName==='DIV');
+    if(!lines.length) return;
+    const containerW = t.clientWidth;
+    if(containerW<=0) return;
+    // 用 canvas 測量字寬，找最緊的字級讓最長行剛好放進去
+    const cs = getComputedStyle(t);
+    const fontFamily = cs.fontFamily;
+    const fontWeight = cs.fontWeight;
+    const startSize = parseFloat(cs.fontSize);
+    const minSize = 12;
+    let bestSize = startSize;
+    const cv = document.createElement('canvas');
+    const ctx = cv.getContext('2d');
+    for (let s = startSize; s >= minSize; s -= 0.5) {
+      ctx.font = fontWeight+' '+s+'px '+fontFamily;
+      let allFit = true;
+      for (const line of lines) {
+        const w = ctx.measureText(line.innerText||line.textContent||'').width;
+        if (w > containerW - 2) { allFit = false; break; }
+      }
+      if (allFit) { bestSize = s; break; }
+    }
+    if (bestSize < startSize) {
+      t.style.fontSize = bestSize + 'px';
+      lines.forEach(l => l.style.fontSize = 'inherit');
+    }
+  });
   // 階段 1：縮個別元素（標題行、大數字、CTA 關鍵字等）
-  const targets=active.querySelectorAll('.cover-v2-title > div, .spread-title > div, .spread-title, .data-big, .end-keyword .serif, .end-cta-headline, .list-title, .protocol-title, .excerpt-q, .pivot-text');
+  const targets=active.querySelectorAll('.cover-v2-title > div, .spread-title > div, .data-big, .end-keyword .serif, .end-cta-headline, .list-title, .protocol-title, .excerpt-q, .pivot-text');
   targets.forEach(el=>{
-    // 跳過 spread-title 容器（如果它有 child div，由 child 自己縮）
-    if(el.classList.contains('spread-title') && el.children.length>0) return;
     if(!el.dataset._fit){el.dataset._fit=getComputedStyle(el).fontSize;}
-    el.style.fontSize=el.dataset._fit;
-    let size=parseFloat(el.dataset._fit);
-    const minSize=size>40?28:(size>20?14:11);
+    let size=parseFloat(getComputedStyle(el).fontSize);
+    const minSize=size>40?28:(size>20?13:11);
     let attempts=0;
     while(attempts<80 && size>minSize){
       const overflowH=el.scrollWidth>el.clientWidth+1;
       const lh=parseFloat(getComputedStyle(el).lineHeight)||size*1.4;
-      // 允許 2-3 行 wrap，但不允許 4 行以上
-      const maxLines=el.classList.contains('spread-title')||el.parentElement?.classList.contains('spread-title')||el.classList.contains('cover-v2-title')||el.parentElement?.classList.contains('cover-v2-title')?3:2;
+      const maxLines=el.parentElement?.classList.contains('spread-title')||el.parentElement?.classList.contains('cover-v2-title')?1:2;
       const overflowV=el.scrollHeight>lh*(maxLines+0.3);
       if(!overflowH && !overflowV)break;
       size-=0.5;
