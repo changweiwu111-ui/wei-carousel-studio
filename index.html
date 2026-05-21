@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.11 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.12 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -816,10 +816,8 @@ function palette(theme) {
 }
 
 function topRule(p, n, label) {
-  return `<div class="top-rule" style="color:${p.dim};border-bottom-color:${p.rule}">
-    <span class="mono">SECTION ${pad(n)}</span>
-    <span class="mono">${esc(label)}</span>
-  </div>`;
+  // v3.12 拿掉頂部英文標籤（用戶要求乾淨版面）
+  return '';
 }
 function footer(p, n, total, cat, brand) {
   const name = (brand && brand.name) || '韋總裁';
@@ -947,11 +945,13 @@ function S3(d, theme, ctx, brand) {
 
 function S4(d, theme, ctx, brand) {
   const p = palette(theme);
+  // 剝掉 t 開頭可能的 01/02/03 / 1. / 一、等前綴，避免跟 protocol-num 重複
+  const cleanT = s => String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/, '').trim();
   const items = (d.items||[]).map((it,i,a) => `
     <div class="protocol-step">
       <div class="protocol-num serif" style="color:${p.accent}">${pad(i+1)}</div>
       <div class="protocol-body">
-        <div class="protocol-title" style="color:${p.text}">${esc(it.t)}</div>
+        <div class="protocol-title" style="color:${p.text}">${esc(cleanT(it.t))}</div>
         <div class="protocol-sub" style="color:${p.mute}">${esc(it.s)}</div>
       </div>
       ${it.note ? `<div class="protocol-note mono" style="color:${p.dim}">${esc(it.note)}</div>` : ''}
@@ -1006,11 +1006,12 @@ function S5(d, theme, ctx, brand) {
 
 function S6(d, theme, ctx, brand) {
   const p = palette(theme);
+  const cleanT6 = s => String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/, '').trim();
   const items = (d.items||[]).map((it,i,a) => `
     <div class="list-row">
       <div class="list-num serif" style="color:${p.accent}">${pad(i+1)}</div>
       <div class="list-body">
-        <div class="list-title" style="color:${p.text}">${esc(it.t)}</div>
+        <div class="list-title" style="color:${p.text}">${esc(cleanT6(it.t))}</div>
         <div class="list-sub" style="color:${p.mute}">${esc(it.s)}</div>
       </div>
     </div>
@@ -1055,8 +1056,6 @@ function S7(d, kw, tool, theme, ctx, brand) {
         <div class="end-tool-name serif" style="color:${p.text}">${esc(tool)}</div>
         ${toolSub ? `<div class="end-tool-sub" style="color:${p.mute}">${esc(toolSub)}</div>` : ''}
       </div>
-      <div class="end-rule" style="background:${p.rule}"></div>
-      <div class="end-sign mono" style="color:${p.dim}">FOLLOW · ${esc((brand && brand.handle) || '@changw_0331')}</div>
     </div>
     ${footer(p,7,7,ctx.category,brand)}
   </div>`;
@@ -1090,13 +1089,14 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:68px 56px 96px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:30px; font-weight:900; letter-spacing:.05em; line-height:1.55; max-width:100%; }
-  .cover-v2-title > div { white-space:nowrap; overflow:hidden; max-width:100%; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:30px; font-weight:900; letter-spacing:.05em; line-height:1.55; max-width:100%; width:100%; }
+  .cover-v2-title > div { white-space:nowrap; max-width:100%; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:13px; line-height:2.1; letter-spacing:.04em; }
   .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:90px 56px 96px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:32px; font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; max-width:100%; overflow:hidden; }
+  .spread-title { font-size:32px; font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; max-width:100%; width:100%; }
+  .spread-title > div { white-space:nowrap; max-width:100%; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
   .spread-left .spread-rule { margin-left:0; }
@@ -1173,7 +1173,9 @@ const SLIDE_CSS = `
   .panel-btn { flex:1; padding:11px; background:rgba(166,132,85,.06); border:none; color:var(--copper); font-size:10px; cursor:pointer; font-family:'JetBrains Mono',monospace; letter-spacing:.12em; transition:background .15s; }
   .panel-btn:hover { background:rgba(166,132,85,.16); }
   .panel-btn + .panel-btn { border-left:.5px solid rgba(245,241,232,.06); }
-  [contenteditable]:focus { outline:2px solid rgba(166,132,85,.55); outline-offset:4px; border-radius:2px; }
+  [contenteditable] { cursor:text; transition:background .12s; }
+  [contenteditable]:hover { background:rgba(232,196,106,0.08); border-radius:2px; }
+  [contenteditable]:focus { outline:2px solid rgba(166,132,85,.7); outline-offset:4px; border-radius:2px; background:rgba(232,196,106,0.06); }
   .exporting .tabs, .exporting .panel, .exporting .arrow, .exporting .dots { visibility:hidden; }
 `;
 
@@ -1222,7 +1224,7 @@ ${content.hashtags||'#理財規劃 #個人理財 #保險規劃 #財務自由 #ET
   <div class="stage" id="stage">
     ${slideHTML}
     <div class="dots">${dots}</div>
-    <div id="nav-status" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.2em;color:#fff;background:#0F1B33;padding:8px 18px;border-radius:99px;z-index:99;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4);border:1.5px solid #E8C46A;">1 / 7</div>
+    <div id="nav-status" style="display:none">1 / 7</div>
   </div>
   <button class="arrow" id="arrow-next" onclick="next()">›</button>
 </div>
@@ -1265,15 +1267,22 @@ window.next=function(){console.log('[NEXT] from',cur);goto((cur+1)%total);};
 function autoFit(){_safe(()=>{
   const active=document.querySelector('.sl.is-active');
   if(!active)return;
-  // 標題每一行（含 cover-v2-title > div 和 spread-title）
-  const titleLines=active.querySelectorAll('.cover-v2-title > div, .spread-title, .data-big, .end-keyword .serif, .end-cta-headline');
-  titleLines.forEach(el=>{
+  // 標題每一行（含 cover-v2-title > div、spread-title > div、單行 spread-title）
+  const targets=active.querySelectorAll('.cover-v2-title > div, .spread-title > div, .spread-title, .data-big, .end-keyword .serif, .end-cta-headline');
+  targets.forEach(el=>{
+    // 跳過已被當作容器的 spread-title（有 children）
+    if(el.classList.contains('spread-title') && el.children.length>0) return;
     if(!el.dataset._fit){el.dataset._fit=getComputedStyle(el).fontSize;}
     el.style.fontSize=el.dataset._fit;
     let size=parseFloat(el.dataset._fit);
     let attempts=0;
-    // 偵測：scrollWidth > clientWidth 表示會折行 / scrollHeight > 1.5x lineHeight 表示已折行
-    while((el.scrollWidth>el.clientWidth+1 || (el.children.length===0 && el.scrollHeight>parseFloat(getComputedStyle(el).lineHeight)*1.4)) && size>12 && attempts<50){
+    // 對 nowrap 元素：scrollWidth > clientWidth 表示溢出
+    // 對自由 wrap 元素：scrollHeight > 1.4x lineHeight 表示換行了
+    while(attempts<60 && size>11){
+      const overflowH=el.scrollWidth>el.clientWidth+1;
+      const lh=parseFloat(getComputedStyle(el).lineHeight);
+      const overflowV=el.children.length===0 && el.scrollHeight>lh*1.4;
+      if(!overflowH && !overflowV)break;
       size-=1;
       el.style.fontSize=size+'px';
       attempts++;
@@ -1699,6 +1708,54 @@ function loadBrand() {
   if (h) document.getElementById('brand-handle').value = h;
 }
 
+// AI 生成後的清理 — 把明顯的 placeholder / slogan 殘留清掉
+function cleanupAIContent(c) {
+  if (!c || typeof c !== 'object') return c;
+  const PH = ['ENGLISH','淺顯一句','結語金句','TAG','placeholder','主標一句話','8字內主標','你的名字','標題第'];
+  const cleanStr = v => {
+    if (typeof v !== 'string') return v;
+    const t = v.trim();
+    if (!t) return '';
+    if (t.length < 30 && PH.some(p => t.includes(p))) return '';
+    return v;
+  };
+  // S1：濾掉品牌 slogan 入標題
+  if (c.s1?.titleLines) {
+    c.s1.titleLines = c.s1.titleLines.map(l => {
+      const t = String(l||'').trim();
+      if (!t) return '';
+      if (t === '真誠才是必殺技' || t.includes('必殺技')) return '';
+      return l;
+    }).filter(l => l !== '');
+    while (c.s1.titleLines.length < 3) c.s1.titleLines.push('');
+  }
+  // S5：清 placeholder
+  if (c.s5) {
+    if (typeof c.s5.tag === 'string') {
+      const t = c.s5.tag.trim().toUpperCase();
+      if (PH.some(p => t.includes(p.toUpperCase())) || t === 'TAG') c.s5.tag = 'BY THE NUMBERS';
+    }
+    c.s5.source = cleanStr(c.s5.source);
+    c.s5.quote = cleanStr(c.s5.quote);
+    c.s5.scenario = cleanStr(c.s5.scenario);
+  }
+  // S2/S3 subtitle 清 placeholder
+  if (c.s2) c.s2.subtitle = cleanStr(c.s2.subtitle);
+  if (c.s3) c.s3.subtitle = cleanStr(c.s3.subtitle);
+  // S4 subtitleLines 清
+  if (c.s4?.subtitleLines) c.s4.subtitleLines = c.s4.subtitleLines.map(cleanStr).filter(Boolean);
+  // S7 清
+  if (c.s7) {
+    c.s7.ctaSub = cleanStr(c.s7.ctaSub);
+    c.s7.toolSub = cleanStr(c.s7.toolSub);
+  }
+  // S4/S6 items 標題剝編號（防 AI 把 "01 標題" 直接當 t）
+  const stripNum = s => String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/, '').trim();
+  if (c.s4?.items) c.s4.items.forEach(it => { it.t = stripNum(it.t); });
+  if (c.s6?.items) c.s6.items.forEach(it => { it.t = stripNum(it.t); });
+  return c;
+}
+
 function validateContent(content) {
   const issues = [];
   if (!content || typeof content !== 'object') return ['沒有內容'];
@@ -1763,6 +1820,8 @@ function generate() {
     showToast('JSON 解析失敗：' + err.message, true);
     return;
   }
+  // v3.12：清掉 AI 殘留的 placeholder / slogan
+  content = cleanupAIContent(content);
   const kw   = ($keyword.value || '結構').trim();
   const tool = ($tool.value || '個人現金流檢查表').trim();
   const brand = getBrand();
@@ -1898,7 +1957,16 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
   "s7": {"ctaSub":"","toolSub":""}
 }
 
-輸出時直接給完整 JSON，包在 \`\`\`json ... \`\`\` 中，不要任何說明文字。`;
+輸出時直接給完整 JSON，包在 \`\`\`json ... \`\`\` 中，不要任何說明文字。
+
+# 🚫 七大絕對禁止（生成前最後檢查）
+1. **絕對不要把品牌 slogan「真誠才是必殺技」放入任何 titleLines / 標題** — 那是品牌標語，不是內容
+2. **絕對不要保留任何 schema placeholder 文字**：「ENGLISH」「淺顯一句」「結語金句」「主標一句話」「TAG」「placeholder」這些都是欄位提示，要替換成真實內容
+3. **每張 subtitle / 副標都要不同** — 不可以三張副標都寫類似的話。如果寫不出來、寧可留空
+4. **titleLines 每行不超過 8 個中文字** — 例：「不是賺得多就有錢」這種就太長
+5. **S4/S6 items 的 t 不可加「01 / 02 / 03」前綴** — 編號由 UI 自動加，AI 只寫純標題文字
+6. **S5.bigNumber 必須等於 type=gold 行的 val**，視覺一致性鐵則
+7. **每張只寫絕對必要的內容**，能短就短，能省就省。寫不出好內容寧可留空白`;
 
 // ─── Key persistence ───────────────────────────────────────────────────────
 function loadAPIKey() {
