@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.23 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.24 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -897,9 +897,22 @@ function S1(d, theme, ctx, brand) {
   const p = palette(theme), dk = p.dark;
   const goldAccent = dk ? '#F0CC74' : '#8B6A1A';
   const goldLine = dk ? '#E8C46A' : '#9C7A20';
-  const ai = d.accentLineIndex ?? d.goldLineIndex ?? 1;
-  const title = (d.titleLines||[]).map((l,i) =>
-    i === ai
+  // 過濾空 line（避免空 div 撐出空白行）
+  const rawLines = (d.titleLines||[]).map(l => (l||'').trim());
+  const nonEmpty = rawLines.filter(l => l);
+  const originalAi = d.accentLineIndex ?? d.goldLineIndex ?? 1;
+  // 在 nonEmpty 中找 accent index — 若原 ai 對應的是空 line，accent 改放在 nonEmpty 中點
+  let newAi;
+  if (nonEmpty.length === 1) {
+    newAi = 0; // 只有 1 行就讓它金色
+  } else if (rawLines[originalAi] && rawLines[originalAi].trim()) {
+    // 原 accent 是有內容的 → 找它在 nonEmpty 中的位置
+    newAi = nonEmpty.indexOf(rawLines[originalAi]);
+  } else {
+    newAi = Math.floor(nonEmpty.length / 2);
+  }
+  const title = nonEmpty.map((l,i) =>
+    i === newAi
       ? `<div style="color:${goldAccent};text-shadow:${dk?'0 0 24px rgba(240,204,116,.35)':'none'};font-weight:900">${esc(l)}</div>`
       : `<div style="color:${p.text}">${esc(l)}</div>`
   ).join('');
@@ -2246,22 +2259,48 @@ function parseTextHeuristic(text) {
   const topicLine = (paras[0].split('\n')[0] || '').replace(/^主題[:：]\s*/, '').trim();
 
   // ─── S1: 封面 ───
-  // titleLines: 從主題拆出 3 個短句（按「，」或字數分）
+  // titleLines 取得邏輯（優先順序）：
+  // 1. 第 1 段本身就是 ≥2 行的短句 → 直接用（≤14 字/行）
+  // 2. 主題有 ≥2 個標點斷點 → 用標點斷成 2-3 行
+  // 3. 主題夠長且無標點 → 用空格切 2 行
+  // 4. 短標題 → 1 行就好（不要硬切，讓 CSS 處理）
   const splitTitle = (t) => {
     if (!t) return ['','',''];
-    // 先用逗號斷
-    let parts = t.split(/[，,]/g).map(s => s.trim()).filter(Boolean);
-    if (parts.length >= 2) {
-      // 取前 3 段
-      while (parts.length < 3) parts.push('');
-      return parts.slice(0,3);
+    t = t.trim();
+    // 用標點斷
+    const punctParts = t.split(/[，,。！？]/g).map(s => s.trim()).filter(s => s.length > 0);
+    if (punctParts.length >= 2) {
+      const result = punctParts.slice(0, 3);
+      while (result.length < 3) result.push('');
+      return result;
     }
-    // 沒逗號 → 平均切 3 段
-    const L = t.length;
-    const chunk = Math.ceil(L/3);
-    return [t.slice(0,chunk), t.slice(chunk,chunk*2), t.slice(chunk*2)];
+    // 短 ≤14 字 → 1 行
+    if (t.length <= 14) return [t, '', ''];
+    // 長標題沒標點 → 找最近中點的空格切 2 行
+    const mid = Math.floor(t.length / 2);
+    const spaces = [];
+    for (let i = 2; i < t.length - 2; i++) {
+      if (/[\s　]/.test(t[i])) spaces.push(i);
+    }
+    if (spaces.length > 0) {
+      const best = spaces.reduce((a,b) => Math.abs(b-mid) < Math.abs(a-mid) ? b : a);
+      return [t.slice(0, best).trim(), t.slice(best).trim(), ''];
+    }
+    // 無空格無標點 → 用 smartBreak 邏輯切中
+    const chunk = Math.ceil(t.length / 2);
+    return [t.slice(0, chunk), t.slice(chunk), ''];
   };
-  out.s1.titleLines = splitTitle(topicLine);
+
+  // 先看 firstPara 是否本來就是「多行短句」格式
+  const firstPara = paras[0];
+  const firstLinesRaw = firstPara.split('\n').map(l => l.replace(/^主題[:：]\s*/, '').trim()).filter(l => l);
+  if (firstLinesRaw.length >= 2 && firstLinesRaw.every(l => l.length <= 12)) {
+    // 多行短句 → 直接用
+    out.s1.titleLines = firstLinesRaw.slice(0, 3);
+    while (out.s1.titleLines.length < 3) out.s1.titleLines.push('');
+  } else {
+    out.s1.titleLines = splitTitle(topicLine);
+  }
   out.s1.meta = '';
   // bodyLines: 第 2 段的前 3 句
   if (paras[1]) {
