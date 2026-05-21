@@ -487,6 +487,40 @@
     border-color: var(--accent);
     background: rgba(232,196,106,0.10);
   }
+  .external-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 12px;
+    padding: 14px;
+    background: rgba(232,196,106,0.08);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+  }
+  .ext-nav-btn {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--panel);
+    border: none;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform .12s, background .15s;
+  }
+  .ext-nav-btn:hover { background: #F0D480; transform: scale(1.05); }
+  .ext-nav-btn:active { transform: scale(.92); }
+  .ext-nav-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: .12em;
+    color: var(--text);
+    font-weight: 600;
+    min-width: 90px;
+    text-align: center;
+  }
+
   .voice-btn.is-recording {
     background: rgba(232,90,80,0.15);
     border-color: #E25A50;
@@ -548,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.10 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.11 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -648,6 +682,13 @@
         ✦ 生成輪播
       </button>
       <div class="ai-status" id="ai-status"></div>
+
+      <!-- 外部直控按鈕（v3.10 - 預覽內按鈕失效時的備援）-->
+      <div class="external-nav">
+        <button class="ext-nav-btn" onclick="parentNav('prev')" title="上一張">‹</button>
+        <span class="ext-nav-label" id="ext-nav-label">頁數 1 / 7</span>
+        <button class="ext-nav-btn" onclick="parentNav('next')" title="下一張">›</button>
+      </div>
     </div>
 
     <!-- JSON manual input (進階) -->
@@ -2350,12 +2391,31 @@ $topic.addEventListener('keydown', e => {
 // Parent-to-iframe navigation via postMessage
 function parentNav(dir) {
   const win = $preview.contentWindow;
-  if (!win) { showToast('預覽還沒載入', true); return; }
+  const doc = $preview.contentDocument;
+  console.log('[parentNav]', dir, 'win:', !!win, 'doc:', !!doc);
+  if (!win || !doc) { showToast('預覽還沒載入，請先按生成輪播', true); return; }
+
+  // 直接操作 iframe DOM（最暴力但最可靠）
   try {
-    if (dir === 'next' && win.next) win.next();
-    else if (dir === 'prev' && win.prev) win.prev();
-    else if (typeof dir === 'number' && win.goto) win.goto(dir);
-    else win.postMessage({nav: dir}, '*');
+    const slides = doc.querySelectorAll('.sl');
+    if (!slides.length) { showToast('找不到投影片，重新生成', true); return; }
+    const activeIdx = [...slides].findIndex(s => s.classList.contains('is-active'));
+    let nextIdx = activeIdx;
+    if (dir === 'next') nextIdx = (activeIdx + 1) % slides.length;
+    else if (dir === 'prev') nextIdx = (activeIdx - 1 + slides.length) % slides.length;
+    else if (typeof dir === 'number') nextIdx = dir;
+
+    slides.forEach((s, i) => s.classList.toggle('is-active', i === nextIdx));
+    doc.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('is-active', i === nextIdx));
+    doc.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('is-active', i === nextIdx));
+
+    const navStatus = doc.getElementById('nav-status');
+    if (navStatus) navStatus.textContent = (nextIdx + 1) + ' / ' + slides.length;
+
+    const extLabel = document.getElementById('ext-nav-label');
+    if (extLabel) extLabel.textContent = '頁數 ' + (nextIdx + 1) + ' / ' + slides.length;
+
+    console.log('[parentNav] ✓ moved to', nextIdx);
   } catch (e) {
     console.error('parentNav 失敗：', e);
     showToast('無法操作預覽：' + e.message, true);
