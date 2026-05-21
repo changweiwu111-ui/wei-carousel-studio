@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.17 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.18 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -806,40 +806,55 @@ const TOKENS = {
 };
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 // 智能斷行：把 AI 的隨意 \n 全部合併，再依字數智能決定 2 行還是 3 行
-// 規則：≤9 字 → 1 行；10-19 字 → 2 行（優先標點處）；20+ → 3 行
+// 規則：≤10 字 → 1 行；11-19 字 → 2 行；20+ → 3 行
+// 斷點優先：。！？ > ，、 > 空白 > 不切到複合詞中間
 function smartBreak(s) {
   const flat = String(s||'').replace(/\n+/g,'').trim();
   const L = flat.length;
-  if (L <= 9) return flat;
+  if (L <= 10) return flat;
 
-  // 找區間 [lo, hi] 內最佳斷點（優先 。！？ > ，、 > 中點）
+  // 中文常見不可分複合詞 — 不能切在這些之間
+  const KEEP_TOGETHER = ['觀念','差距','工作','薪水','財商','理財','投資','儲蓄','保險','分配','回報','財務','自由','人生','時間','金額','問題','概念','心態','選擇','機會','風險','成本','收入','支出','資產','負債','現金','流水','控制','管理','規劃','目標','方向','方法','策略','原則','錯誤','正確','重要','關鍵','核心','基礎','起點','終點','過程','結果','感覺','想法','態度','行動','決定','改變','成長','學習','努力','付出','收穫','機制','系統','工具','技巧','建議','分享','討論','說明','介紹','解釋','證明','證據','數據','數字','研究','報告','調查','統計','一個','三個','五個','十個','十年','三年','五年','一年'];
+  const isBadSplit = (pos) => {
+    // 檢查 pos 之後的 2 個字是否組成複合詞、或 pos+1 是「念」「距」「水」等容易尷尬獨佔一行
+    const pair = flat.slice(pos+1, pos+3);
+    const prevPair = flat.slice(pos-1, pos+1);
+    return KEEP_TOGETHER.includes(pair) || KEEP_TOGETHER.includes(prevPair);
+  };
+
+  // 找區間 [lo, hi] 內最佳斷點
   const findBreak = (lo, hi) => {
     lo = Math.max(0, lo);
     hi = Math.min(L-1, hi);
-    const heavy=[], light=[];
+    const heavy=[], light=[], spaces=[], safe=[];
     for (let i=lo;i<=hi;i++) {
       if (/[。！？!?]/.test(flat[i])) heavy.push(i);
       else if (/[，、,]/.test(flat[i])) light.push(i);
+      else if (/[\s　]/.test(flat[i])) spaces.push(i);
+      else if (!isBadSplit(i)) safe.push(i);
     }
-    if (heavy.length) return heavy[Math.floor(heavy.length/2)];
-    if (light.length) return light[Math.floor(light.length/2)];
+    const pickMid = (arr) => arr[Math.floor(arr.length/2)];
+    if (heavy.length) return pickMid(heavy);
+    if (light.length) return pickMid(light);
+    if (spaces.length) return pickMid(spaces);
+    if (safe.length) return pickMid(safe);
     return Math.floor((lo+hi)/2);
   };
 
   if (L <= 19) {
-    // 兩行：最佳斷點在 30%-70% 範圍
-    const b = findBreak(Math.floor(L*0.3), Math.floor(L*0.7));
-    return flat.slice(0,b+1) + '\n' + flat.slice(b+1).trim();
+    // 兩行：擴大搜尋範圍 25%-75%，給 findBreak 更多選擇
+    const b = findBreak(Math.floor(L*0.25), Math.floor(L*0.75));
+    return flat.slice(0,b+1).trim() + '\n' + flat.slice(b+1).trim();
   }
   // 三行：兩個斷點
-  const b1 = findBreak(Math.floor(L*0.22), Math.floor(L*0.45));
-  const b2 = findBreak(Math.floor(L*0.55), Math.floor(L*0.78));
+  const b1 = findBreak(Math.floor(L*0.20), Math.floor(L*0.45));
+  const b2 = findBreak(Math.floor(L*0.55), Math.floor(L*0.80));
   if (b2 > b1) {
-    return flat.slice(0,b1+1) + '\n' + flat.slice(b1+1,b2+1).trim() + '\n' + flat.slice(b2+1).trim();
+    return flat.slice(0,b1+1).trim() + '\n' + flat.slice(b1+1,b2+1).trim() + '\n' + flat.slice(b2+1).trim();
   }
   // fallback 兩行
-  const b = findBreak(Math.floor(L*0.3), Math.floor(L*0.7));
-  return flat.slice(0,b+1) + '\n' + flat.slice(b+1).trim();
+  const b = findBreak(Math.floor(L*0.25), Math.floor(L*0.75));
+  return flat.slice(0,b+1).trim() + '\n' + flat.slice(b+1).trim();
 }
 const nlToDiv = s => smartBreak(s).split('\n').map(l => `<div>${esc(l)}</div>`).join('');
 const pad = n => String(n).padStart(2,'0');
@@ -1197,10 +1212,13 @@ const SLIDE_CSS = `
   .end-rule { width:40px; height:.5px; margin-bottom:14px; }
   .end-sign { font-size:10px; letter-spacing:.22em; }
   /* contenteditable hover / focus hint — 點任意文字直接編輯 */
-  [contenteditable="true"] { cursor:text; transition:background-color .15s, outline-color .15s; outline:1px dashed transparent; outline-offset:2px; border-radius:2px; }
-  [contenteditable="true"]:hover { background:rgba(232,196,106,0.08); outline-color:rgba(232,196,106,0.35); }
-  [contenteditable="true"]:focus { background:rgba(232,196,106,0.14); outline:1.5px solid rgba(232,196,106,0.7); outline-offset:2px; }
+  [contenteditable="true"] { cursor:text; transition:background-color .15s, outline-color .15s; outline:1px dashed transparent; outline-offset:3px; border-radius:2px; }
+  [contenteditable="true"]:hover { background:rgba(232,196,106,0.14); outline-color:rgba(232,196,106,0.6); }
+  [contenteditable="true"]:focus { background:rgba(232,196,106,0.20); outline:2px solid rgba(232,196,106,0.85); outline-offset:3px; }
+  .edit-hint { position:absolute; top:14px; left:50%; transform:translateX(-50%); font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.18em; color:rgba(232,196,106,0.7); background:rgba(0,0,0,0.4); padding:5px 12px; border-radius:20px; z-index:30; pointer-events:none; animation:editHintFade 6s ease-in forwards; }
+  @keyframes editHintFade { 0%,60%{opacity:1} 100%{opacity:0; visibility:hidden} }
   .exporting [contenteditable="true"] { outline:none !important; background:transparent !important; }
+  .exporting .edit-hint { display:none !important; }
   .dots { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); display:flex; gap:5px; z-index:20; }
   .dot { width:5px; height:5px; border-radius:50%; background:rgba(166,132,85,.28); border:none; cursor:pointer; transition:all .2s; padding:0; }
   .dot.is-active { width:18px; border-radius:3px; background:var(--copper); }
@@ -1263,6 +1281,7 @@ ${content.hashtags||'#理財規劃 #個人理財 #保險規劃 #財務自由 #ET
 <div class="stage-wrap">
   <button class="arrow" id="arrow-prev" onclick="prev()">‹</button>
   <div class="stage" id="stage">
+    <div class="edit-hint">CLICK TEXT TO EDIT ・ 點任何文字直接改</div>
     ${slideHTML}
     <div class="dots">${dots}</div>
     <div id="nav-status" style="display:none">1 / 7</div>
