@@ -548,7 +548,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.5 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.6 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1192,37 +1192,83 @@ EXPORT PNG：當前那張匯出 ・ EXPORT ALL：全部 7 張</div>
 </div>
 <script>
 let cur=0, activeTab=0; const total=7;
-function goto(i){const s=document.querySelectorAll('.sl'),d=document.querySelectorAll('.dot'),t=document.querySelectorAll('.tab');s[cur].classList.remove('is-active');d[cur].classList.remove('is-active');t[cur].classList.remove('is-active');cur=i;s[i].classList.add('is-active');d[i].classList.add('is-active');t[i].classList.add('is-active');}
+const _safe=(fn,name)=>{try{return fn();}catch(e){console.error('['+name+']',e);}};
+
+function goto(i){_safe(()=>{
+  const s=document.querySelectorAll('.sl');
+  const d=document.querySelectorAll('.dot');
+  const t=document.querySelectorAll('.tab');
+  if(!s.length)return;
+  i=((i%s.length)+s.length)%s.length;
+  if(s[cur])s[cur].classList.remove('is-active');
+  if(d[cur])d[cur].classList.remove('is-active');
+  if(t[cur])t[cur].classList.remove('is-active');
+  cur=i;
+  if(s[i])s[i].classList.add('is-active');
+  if(d[i])d[i].classList.add('is-active');
+  if(t[i])t[i].classList.add('is-active');
+  setTimeout(autoFit,30);
+},'goto');}
 function prev(){goto((cur-1+total)%total);}
 function next(){goto((cur+1)%total);}
-function refreshCaption(){
+
+function autoFit(){_safe(()=>{
+  const active=document.querySelector('.sl.is-active');
+  if(!active)return;
+  // 標題每一行（含 cover-v2-title > div 和 spread-title）
+  const titleLines=active.querySelectorAll('.cover-v2-title > div, .spread-title, .data-big, .end-keyword .serif, .end-cta-headline');
+  titleLines.forEach(el=>{
+    if(!el.dataset._fit){el.dataset._fit=getComputedStyle(el).fontSize;}
+    el.style.fontSize=el.dataset._fit;
+    let size=parseFloat(el.dataset._fit);
+    let attempts=0;
+    // 偵測：scrollWidth > clientWidth 表示會折行 / scrollHeight > 1.5x lineHeight 表示已折行
+    while((el.scrollWidth>el.clientWidth+1 || (el.children.length===0 && el.scrollHeight>parseFloat(getComputedStyle(el).lineHeight)*1.4)) && size>12 && attempts<50){
+      size-=1;
+      el.style.fontSize=size+'px';
+      attempts++;
+    }
+  });
+},'autoFit');}
+
+function refreshCaption(){_safe(()=>{
   const sls=document.querySelectorAll('.sl');
   if(!sls.length)return;
-  const grab=(sl,sel)=>{const el=sl.querySelector(sel);return el?el.innerText.trim():'';};
-  const s1Title=[...sls[0].querySelectorAll('.cover-v2-title > div')].map(d=>d.innerText.trim()).filter(Boolean).join(' ');
+  const grab=(sl,sel)=>{if(!sl)return'';const el=sl.querySelector(sel);return el?(el.innerText||'').trim():'';};
+  const s1Title=sls[0]?[...sls[0].querySelectorAll('.cover-v2-title > div')].map(d=>(d.innerText||'').trim()).filter(Boolean).join(' '):'';
   const s2Sub=grab(sls[1],'.spread-deck');
   const s3Title=grab(sls[2],'.spread-title').replace(/\n/g,' ');
   const kw=grab(sls[6],'.end-keyword .serif');
   const tl=grab(sls[6],'.end-tool-name');
-  const ha=document.querySelector('.wm-handle')?.innerText.trim()||'';
+  const haEl=document.querySelector('.wm-handle');
+  const ha=haEl?(haEl.innerText||'').trim():'';
   const p0=document.getElementById('p0');
   if(!p0)return;
-  const oldLines=p0.innerText.split('\n');
+  const oldLines=(p0.innerText||'').split('\n');
   const hashLine=oldLines.find(l=>l.trim().startsWith('#'))||'#理財規劃 #個人理財 #財務自由';
   p0.innerText=s1Title+'\n\n'+s2Sub+'\n\n'+s3Title+'\n\n底下留言「'+kw+'」\n我把'+tl+'傳給你\n\n'+ha+'\n'+hashLine;
-}
-function tab(i){
+},'refreshCaption');}
+
+function tab(i){_safe(()=>{
   document.querySelectorAll('.panel-tab').forEach((b,j)=>b.classList.toggle('is-active',j===i));
   document.querySelectorAll('.panel-body').forEach((p,j)=>p.classList.toggle('is-active',j===i));
   activeTab=i;
   if(i===0)refreshCaption();
-}
-function copyPanel(){const b=document.querySelectorAll('.panel-body')[activeTab];navigator.clipboard.writeText(b.innerText).then(()=>{const btn=event.target;const t=btn.textContent;btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent=t,1500);});}
-async function exportCurrent(){const sl=document.querySelectorAll('.sl')[cur];document.body.classList.add('exporting');const c=await html2canvas(sl,{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='韋總裁_slide_'+String(cur+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();}
-async function exportAll(){const btn=event.target;const orig=btn.textContent;const sls=document.querySelectorAll('.sl');for(let i=0;i<sls.length;i++){btn.textContent='EXPORTING '+(i+1)+'/'+sls.length;goto(i);await new Promise(r=>setTimeout(r,400));document.body.classList.add('exporting');const c=await html2canvas(sls[i],{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='韋總裁_slide_'+String(i+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();await new Promise(r=>setTimeout(r,200));}btn.textContent='DONE ✓';setTimeout(()=>btn.textContent=orig,1500);}
-document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.children.length===0&&el.innerText.trim()&&!el.classList.contains('wm-name')&&!el.classList.contains('wm-handle')){el.setAttribute('contenteditable','true');el.addEventListener('blur',refreshCaption);}});
+},'tab');}
+
+function copyPanel(){_safe(()=>{const b=document.querySelectorAll('.panel-body')[activeTab];navigator.clipboard.writeText(b.innerText).then(()=>{const btn=event.target;const t=btn.textContent;btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent=t,1500);});},'copy');}
+
+async function exportCurrent(){try{const sl=document.querySelectorAll('.sl')[cur];document.body.classList.add('exporting');const c=await html2canvas(sl,{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='wei_slide_'+String(cur+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();}catch(e){console.error('export',e);}}
+
+async function exportAll(){try{const btn=event.target;const orig=btn.textContent;const sls=document.querySelectorAll('.sl');for(let i=0;i<sls.length;i++){btn.textContent='EXPORTING '+(i+1)+'/'+sls.length;goto(i);await new Promise(r=>setTimeout(r,400));document.body.classList.add('exporting');const c=await html2canvas(sls[i],{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='wei_slide_'+String(i+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();await new Promise(r=>setTimeout(r,200));}btn.textContent='DONE ✓';setTimeout(()=>btn.textContent=orig,1500);}catch(e){console.error('exportAll',e);}}
+
+_safe(()=>{document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.children.length===0&&(el.innerText||'').trim()&&!el.classList.contains('wm-name')&&!el.classList.contains('wm-handle')){el.setAttribute('contenteditable','true');el.addEventListener('blur',()=>{refreshCaption();setTimeout(autoFit,30);});}});},'editable');
+
 document.addEventListener('keydown',ev=>{if(ev.target.isContentEditable)return;if(ev.key==='ArrowLeft')prev();if(ev.key==='ArrowRight')next();if(ev.key==='f'||ev.key==='F'){if(!document.fullscreenElement)document.getElementById('stage').requestFullscreen();else document.exitFullscreen();}});
-let tx=0;const stage=document.getElementById('stage');stage.addEventListener('touchstart',ev=>tx=ev.touches[0].clientX,{passive:true});stage.addEventListener('touchend',ev=>{const d=ev.changedTouches[0].clientX-tx;if(Math.abs(d)>40)d<0?next():prev();});
+let tx=0;const stage=document.getElementById('stage');if(stage){stage.addEventListener('touchstart',ev=>tx=ev.touches[0].clientX,{passive:true});stage.addEventListener('touchend',ev=>{const d=ev.changedTouches[0].clientX-tx;if(Math.abs(d)>40)d<0?next():prev();});}
+
+// 初始載入自動縮字
+setTimeout(autoFit,200);
 <\/script>
 </body></html>`;
 }
@@ -1563,6 +1609,62 @@ function loadBrand() {
   if (h) document.getElementById('brand-handle').value = h;
 }
 
+function validateContent(content) {
+  const issues = [];
+  if (!content || typeof content !== 'object') return ['沒有內容'];
+
+  // 殘留 placeholder 偵測
+  const placeholders = ['ENGLISH', '淺顯一句', '結語金句', 'placeholder', '主標一句話', '你的名字', '8字內主標', 'TAG', '第 1 行', '第 2 行', '第 3 行'];
+  const checkStr = (val, where) => {
+    if (typeof val !== 'string' || !val) return;
+    placeholders.forEach(p => {
+      if (val.length < 30 && val.includes(p)) issues.push(`${where}：殘留範本「${p}」`);
+    });
+  };
+
+  // S1 標題重複
+  const t1 = (content.s1?.titleLines || []).filter(Boolean).map(s => s.trim());
+  if (new Set(t1).size < t1.length) issues.push('S1 標題行重複');
+  t1.forEach((l, i) => checkStr(l, `S1 標題第${i+1}行`));
+
+  // S5 結構檢查
+  if (content.s5) {
+    checkStr(content.s5.tag, 'S5 tag');
+    checkStr(content.s5.source, 'S5 source');
+    // 大數字 vs gold row 對齊
+    const gold = (content.s5.rows || []).find(r => r.type === 'gold');
+    if (gold && content.s5.bigNumber && gold.val) {
+      const bigN = String(content.s5.bigNumber).replace(/[\s,]/g, '');
+      const goldV = String(gold.val).replace(/[\s,]/g, '');
+      if (bigN && goldV && !goldV.includes(bigN) && !bigN.includes(goldV)) {
+        issues.push(`S5 大數字「${content.s5.bigNumber}」≠ 金色行「${gold.val}」(視覺會錯亂)`);
+      }
+    }
+  }
+
+  // S4 步驟標題重複
+  const s4t = (content.s4?.items || []).map(it => (it.t || '').trim()).filter(Boolean);
+  if (new Set(s4t).size < s4t.length) issues.push('S4 步驟標題重複');
+
+  // S6 重點標題重複
+  const s6t = (content.s6?.items || []).map(it => (it.t || '').trim()).filter(Boolean);
+  if (new Set(s6t).size < s6t.length) issues.push('S6 清單標題重複');
+
+  // S4 跟 S6 重疊
+  const overlap = s4t.filter(t => s6t.includes(t));
+  if (overlap.length) issues.push(`S4 跟 S6 重複 ${overlap.length} 項：${overlap.slice(0,2).join('、')}`);
+
+  // S2 痛點重複
+  const s2q = (content.s2?.cards || []).map(c => (c.q || '').trim()).filter(Boolean);
+  if (new Set(s2q).size < s2q.length) issues.push('S2 痛點問句重複');
+
+  // S3 翻轉重複
+  const s3x = (content.s3?.pairs || []).map(p => (p.x || '').trim()).filter(Boolean);
+  if (new Set(s3x).size < s3x.length) issues.push('S3 舊觀念重複');
+
+  return issues;
+}
+
 function generate() {
   let content;
   try {
@@ -1579,6 +1681,13 @@ function generate() {
   lastHTML = html;
   $preview.srcdoc = html;
   $placeholder.classList.add('is-hidden');
+
+  // 內容檢查 — 跳警示
+  const issues = validateContent(content);
+  if (issues.length) {
+    setStatus('⚠ 發現 ' + issues.length + ' 個問題：' + issues[0] + (issues.length > 1 ? `（+${issues.length-1}）` : ''), true);
+    console.warn('內容檢查問題：\n - ' + issues.join('\n - '));
+  }
 }
 
 function downloadJSON() {
