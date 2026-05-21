@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.19 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.20 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1424,9 +1424,57 @@ function tab(i){_safe(()=>{
 
 function copyPanel(){_safe(()=>{const b=document.querySelectorAll('.panel-body')[activeTab];navigator.clipboard.writeText(b.innerText).then(()=>{const btn=event.target;const t=btn.textContent;btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent=t,1500);});},'copy');}
 
-async function exportCurrent(){try{const sl=document.querySelectorAll('.sl')[cur];document.body.classList.add('exporting');const c=await html2canvas(sl,{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='wei_slide_'+String(cur+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();}catch(e){console.error('export',e);}}
+window.exportCurrent = async function(){
+  try {
+    const sls = document.querySelectorAll('.sl');
+    const sl = sls[cur] || document.querySelector('.sl.is-active') || sls[0];
+    if (!sl) { console.error('[export] no slide'); return; }
+    if (typeof html2canvas === 'undefined') { console.error('[export] html2canvas not loaded'); alert('PNG 匯出模組尚未載入，請等 2 秒再試'); return; }
+    document.body.classList.add('exporting');
+    const c = await html2canvas(sl, {scale:2.5, useCORS:true, allowTaint:true, backgroundColor:null, logging:false});
+    document.body.classList.remove('exporting');
+    const a = document.createElement('a');
+    a.download = 'wei_slide_'+String(cur+1).padStart(2,'0')+'.png';
+    a.href = c.toDataURL('image/png');
+    document.body.appendChild(a); a.click(); a.remove();
+    console.log('[export] done', a.download);
+  } catch(e) {
+    document.body.classList.remove('exporting');
+    console.error('[export] failed', e);
+    alert('匯出失敗：'+(e.message||e));
+  }
+};
 
-async function exportAll(){try{const btn=event.target;const orig=btn.textContent;const sls=document.querySelectorAll('.sl');for(let i=0;i<sls.length;i++){btn.textContent='EXPORTING '+(i+1)+'/'+sls.length;goto(i);await new Promise(r=>setTimeout(r,400));document.body.classList.add('exporting');const c=await html2canvas(sls[i],{scale:2.5,useCORS:true,backgroundColor:null});document.body.classList.remove('exporting');const a=document.createElement('a');a.download='wei_slide_'+String(i+1).padStart(2,'0')+'.png';a.href=c.toDataURL('image/png');a.click();await new Promise(r=>setTimeout(r,200));}btn.textContent='DONE ✓';setTimeout(()=>btn.textContent=orig,1500);}catch(e){console.error('exportAll',e);}}
+window.exportAll = async function(){
+  try {
+    const btn = (typeof event !== 'undefined' && event && event.target) ? event.target : null;
+    const orig = btn ? btn.textContent : '';
+    const sls = document.querySelectorAll('.sl');
+    if (typeof html2canvas === 'undefined') { alert('PNG 匯出模組尚未載入'); return; }
+    for (let i=0; i<sls.length; i++) {
+      if (btn) btn.textContent = 'EXPORTING '+(i+1)+'/'+sls.length;
+      goto(i);
+      await new Promise(r=>setTimeout(r,500));
+      document.body.classList.add('exporting');
+      const c = await html2canvas(sls[i], {scale:2.5, useCORS:true, allowTaint:true, backgroundColor:null, logging:false});
+      document.body.classList.remove('exporting');
+      const a = document.createElement('a');
+      a.download = 'wei_slide_'+String(i+1).padStart(2,'0')+'.png';
+      a.href = c.toDataURL('image/png');
+      document.body.appendChild(a); a.click(); a.remove();
+      await new Promise(r=>setTimeout(r,300));
+    }
+    if (btn) { btn.textContent = 'DONE ✓'; setTimeout(()=>btn.textContent=orig,1500); }
+  } catch(e) {
+    document.body.classList.remove('exporting');
+    console.error('[exportAll] failed', e);
+    alert('全部匯出失敗：'+(e.message||e));
+  }
+};
+
+// 同步把其他 onclick 用到的函式也掛到 window，避免 srcdoc 環境的 scope 怪事
+window.copyPanel = copyPanel;
+window.tab = tab;
 
 _safe(()=>{document.querySelectorAll('.sl div,.sl span').forEach(el=>{if(el.children.length===0&&(el.innerText||'').trim()&&!el.classList.contains('wm-name')&&!el.classList.contains('wm-handle')){el.setAttribute('contenteditable','true');el.addEventListener('blur',()=>{refreshCaption();setTimeout(autoFit,30);});}});},'editable');
 
