@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.16 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.17 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -805,21 +805,41 @@ const TOKENS = {
   dimCream:'rgba(26,29,46,0.32)', dimInk:'rgba(245,241,232,0.32)',
 };
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-// 智能斷行：若一行超過 10 個中文字且有「，」，從中點附近的「，」斷
+// 智能斷行：把 AI 的隨意 \n 全部合併，再依字數智能決定 2 行還是 3 行
+// 規則：≤9 字 → 1 行；10-19 字 → 2 行（優先標點處）；20+ → 3 行
 function smartBreak(s) {
-  return String(s||'').split('\n').map(line => {
-    const t = line.trim();
-    if (t.length <= 10) return t;
-    // 找句中所有「，」或「、」位置
-    const commas = [];
-    for (let i=0;i<t.length;i++) if (/[，、,]/.test(t[i])) commas.push(i);
-    if (!commas.length) return t;
-    // 找最接近中點的「，」
-    const mid = t.length / 2;
-    const best = commas.reduce((a,b) => Math.abs(b-mid) < Math.abs(a-mid) ? b : a);
-    // 從「，」後斷行
-    return t.slice(0, best+1) + '\n' + t.slice(best+1).trim();
-  }).join('\n');
+  const flat = String(s||'').replace(/\n+/g,'').trim();
+  const L = flat.length;
+  if (L <= 9) return flat;
+
+  // 找區間 [lo, hi] 內最佳斷點（優先 。！？ > ，、 > 中點）
+  const findBreak = (lo, hi) => {
+    lo = Math.max(0, lo);
+    hi = Math.min(L-1, hi);
+    const heavy=[], light=[];
+    for (let i=lo;i<=hi;i++) {
+      if (/[。！？!?]/.test(flat[i])) heavy.push(i);
+      else if (/[，、,]/.test(flat[i])) light.push(i);
+    }
+    if (heavy.length) return heavy[Math.floor(heavy.length/2)];
+    if (light.length) return light[Math.floor(light.length/2)];
+    return Math.floor((lo+hi)/2);
+  };
+
+  if (L <= 19) {
+    // 兩行：最佳斷點在 30%-70% 範圍
+    const b = findBreak(Math.floor(L*0.3), Math.floor(L*0.7));
+    return flat.slice(0,b+1) + '\n' + flat.slice(b+1).trim();
+  }
+  // 三行：兩個斷點
+  const b1 = findBreak(Math.floor(L*0.22), Math.floor(L*0.45));
+  const b2 = findBreak(Math.floor(L*0.55), Math.floor(L*0.78));
+  if (b2 > b1) {
+    return flat.slice(0,b1+1) + '\n' + flat.slice(b1+1,b2+1).trim() + '\n' + flat.slice(b2+1).trim();
+  }
+  // fallback 兩行
+  const b = findBreak(Math.floor(L*0.3), Math.floor(L*0.7));
+  return flat.slice(0,b+1) + '\n' + flat.slice(b+1).trim();
 }
 const nlToDiv = s => smartBreak(s).split('\n').map(l => `<div>${esc(l)}</div>`).join('');
 const pad = n => String(n).padStart(2,'0');
@@ -1105,7 +1125,7 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(16px, 6.4cqi, 30px); font-weight:900; letter-spacing:.03em; line-height:1.4; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(15px, 5.6cqi, 26px); font-weight:900; letter-spacing:.03em; line-height:1.38; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:clamp(11px, 2.5cqi, 13px); line-height:2.0; letter-spacing:.04em; }
