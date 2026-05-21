@@ -548,7 +548,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.9 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.10 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -715,6 +715,12 @@
 
     <div class="actions">
       <button class="btn btn-primary" onclick="generate()">生成輪播 →</button>
+
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-ghost" onclick="parentNav('prev')">‹ 上一張</button>
+        <button class="btn btn-ghost" onclick="parentNav('next')">下一張 ›</button>
+      </div>
+
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="downloadJSON()">下載 JSON</button>
         <button class="btn btn-ghost" onclick="downloadHTML()">下載 HTML</button>
@@ -1175,7 +1181,7 @@ ${content.hashtags||'#理財規劃 #個人理財 #保險規劃 #財務自由 #ET
   <div class="stage" id="stage">
     ${slideHTML}
     <div class="dots">${dots}</div>
-    <div id="nav-status" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;color:rgba(28,28,30,.6);background:rgba(255,255,255,.85);padding:6px 14px;border-radius:99px;z-index:30;pointer-events:none;backdrop-filter:blur(4px);">1 / 7</div>
+    <div id="nav-status" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.2em;color:#fff;background:#0F1B33;padding:8px 18px;border-radius:99px;z-index:99;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4);border:1.5px solid #E8C46A;">1 / 7</div>
   </div>
   <button class="arrow" id="arrow-next" onclick="next()">›</button>
 </div>
@@ -1296,6 +1302,14 @@ setInterval(()=>{
   const active=[...document.querySelectorAll('.sl')].findIndex(s=>s.classList.contains('is-active'));
   if(active>=0&&active!==cur){console.warn('[SYNC] cur mismatch, fixing:', cur, '->', active);cur=active;}
 },2000);
+
+// 父頁面 postMessage 控制
+window.addEventListener('message',(e)=>{
+  if(!e.data)return;
+  if(e.data.nav==='next')next();
+  else if(e.data.nav==='prev')prev();
+  else if(typeof e.data.nav==='number')goto(e.data.nav);
+});
 
 // 等字體載入完再縮字
 if(document.fonts&&document.fonts.ready){
@@ -2332,6 +2346,21 @@ $topic.addEventListener('keydown', e => {
     smartGenerate();
   }
 });
+
+// Parent-to-iframe navigation via postMessage
+function parentNav(dir) {
+  const win = $preview.contentWindow;
+  if (!win) { showToast('預覽還沒載入', true); return; }
+  try {
+    if (dir === 'next' && win.next) win.next();
+    else if (dir === 'prev' && win.prev) win.prev();
+    else if (typeof dir === 'number' && win.goto) win.goto(dir);
+    else win.postMessage({nav: dir}, '*');
+  } catch (e) {
+    console.error('parentNav 失敗：', e);
+    showToast('無法操作預覽：' + e.message, true);
+  }
+}
 
 // Brand inputs trigger regenerate
 ['brand-name','brand-handle'].forEach(id => {
