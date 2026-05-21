@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>導覽測試 ・ 沒 iframe 純測按鈕</title>
+<style>
+  body{background:#0F1B33;color:#F5F1E8;font-family:sans-serif;padding:40px;text-align:center}
+  .stage{width:400px;height:500px;position:relative;margin:20px auto;background:#1A2744;overflow:hidden;border-radius:4px}
+  .sl{position:absolute;inset:0;opacity:0;display:flex;align-items:center;justify-content:center;font-size:80px;font-weight:900;color:#E8C46A;transition:opacity .3s}
+  .sl.is-active{opacity:1}
+  .arrow{width:60px;height:60px;border-radius:50%;background:#E8C46A;color:#0F1B33;border:none;font-size:30px;cursor:pointer;margin:10px;font-weight:900}
+  .arrow:hover{background:#F0D480}
+  #log{background:#000;color:#0f0;font-family:monospace;padding:20px;margin-top:20px;text-align:left;max-height:300px;overflow:auto;font-size:13px}
+  h1{font-family:'Noto Serif TC',serif}
+  .info{color:#E8C46A;font-size:14px;margin-bottom:20px}
+</style>
+</head>
+<body>
+
+<h1>導覽測試頁</h1>
+<div class="info">這頁完全獨立、沒 iframe、沒 srcdoc，按鈕應該立刻動。</div>
+
+<div class="stage" id="stage">
+  <div class="sl is-active">SLIDE 1</div>
+  <div class="sl">SLIDE 2</div>
+  <div class="sl">SLIDE 3</div>
+  <div class="sl">SLIDE 4</div>
+  <div class="sl">SLIDE 5</div>
+  <div class="sl">SLIDE 6</div>
+  <div class="sl">SLIDE 7</div>
+</div>
+
+<div>
+  <button class="arrow" onclick="testPrev()">‹</button>
+  <span id="pageNum" style="font-size:24px;margin:0 20px">1 / 7</span>
+  <button class="arrow" onclick="testNext()">›</button>
+</div>
+
+<div id="log">準備中...</div>
+
+<script>
+let cur = 0;
+const logEl = document.getElementById('log');
+function log(m) {
+  console.log(m);
+  logEl.innerHTML = '[' + new Date().toLocaleTimeString() + '] ' + m + '<br>' + logEl.innerHTML;
+}
+
+function update() {
+  const slides = document.querySelectorAll('.sl');
+  slides.forEach((s, i) => s.classList.toggle('is-active', i === cur));
+  document.getElementById('pageNum').textContent = (cur + 1) + ' / 7';
+}
+
+function testNext() {
+  log('NEXT clicked, cur=' + cur);
+  cur = (cur + 1) % 7;
+  update();
+  log('  → now cur=' + cur);
+}
+
+function testPrev() {
+  log('PREV clicked, cur=' + cur);
+  cur = (cur - 1 + 7) % 7;
+  update();
+  log('  → now cur=' + cur);
+}
+
+log('頁面已載入。請點 ‹ ›');
+log('UA: ' + navigator.userAgent.slice(0, 80));
+</script>
+
+</body>
+</html>
