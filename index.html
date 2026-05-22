@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.32 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.33 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1342,7 +1342,13 @@ function S5(d, theme, ctx, brand) {
   const rowStyle = t => t==='strike' ? `color:${p.dim};text-decoration:line-through;text-decoration-color:${p.dim}`
                       : t==='gold'   ? `color:${p.accent};font-weight:600`
                       :                `color:${p.mute}`;
-  const rows = (d.rows||[]).map((r,i,a) => `
+  // v3.33 ・ 強制過濾 row — label 或 val 任一空白就不顯示，避免「差距」row 沒值
+  const validRows = (d.rows||[]).filter(r => {
+    const lab = String(r.label||'').trim();
+    const val = String(r.val||'').trim();
+    return lab && val;
+  });
+  const rows = validRows.map((r,i,a) => `
     <div class="data-row" style="${i<a.length-1?`border-bottom:.5px solid ${p.rule}`:''}">
       <span class="data-label" style="color:${p.mute}">${esc(r.label)}</span>
       <span class="data-val mono" style="${rowStyle(r.type)}">${esc(r.val)}</span>
@@ -1374,7 +1380,7 @@ function S5(d, theme, ctx, brand) {
       <div class="data-rule" style="background:${p.rule}"></div>
       <div class="data-table">${rows}</div>
       <div class="data-rule" style="background:${p.rule}"></div>
-      <div class="data-quote serif" style="color:${p.mute}"><em>${esc(d.quote)}</em></div>
+      <div class="data-quote serif" style="color:${p.mute}"><em>${nlToDiv(d.quote||'')}</em></div>
     </div>
     ${footer(p,5,7,ctx.category,brand)}
   </div>`;
@@ -1408,9 +1414,19 @@ function S6(d, theme, ctx, brand) {
 
 function S7(d, kw, tool, theme, ctx, brand) {
   const p = palette(theme);
-  const ctaSub = d.ctaSub || '我整理好的東西直接傳給你';
+  // v3.33 ・ 強制清理 ctaSub — 跟 headline 內容重複就用預設
+  let ctaSub = String(d.ctaSub || '').trim();
+  // 偵測重複：含「底下留言」「留言這」「↓」「↑」「傳給你」這類 CTA 字眼就拒絕
+  const looksLikeCTA = /底下留言|留言這|留言「|↓|↑|傳給你|私訊我|私訊「/.test(ctaSub);
+  // 偵測太短或太像 placeholder
+  if (!ctaSub || looksLikeCTA || ctaSub.length < 5 || ctaSub.length > 40) {
+    ctaSub = '想要更完整的整理嗎？';
+  }
+  // v3.33 ・ 強制 kw 不能空 — 用 ctx.kw 或預設
+  let safeKw = String(kw || '').trim();
+  if (!safeKw || safeKw.length > 8) safeKw = '清單'; // 太空或太長都退回預設
   const toolSub = d.toolSub || '';
-  const klen = kw.replace(/\s/g,'').length;
+  const klen = safeKw.replace(/\s/g,'').length;
   const khint = klen<=2?'這兩個字':klen<=4?`這 ${klen} 個字`:'這個關鍵字';
   return `<div class="sl" style="background:${p.bg}">
     ${pageBg(d, ctx, 6, theme)}
@@ -1425,13 +1441,13 @@ function S7(d, kw, tool, theme, ctx, brand) {
           底下留言<span style="color:${p.accent}">${khint}</span>
         </div>
         <div class="end-keyword" style="color:${p.text};border-color:${p.accent};background:${p.dark?'rgba(212,179,90,0.08)':'rgba(212,179,90,0.10)'}">
-          <span class="serif">${esc(kw)}</span>
+          <span class="serif">${esc(safeKw)}</span>
         </div>
         <div class="end-cta-tail" style="color:${p.text}">我把這個工具<span style="color:${p.accent};font-weight:900">直接傳給你</span></div>
       </div>
       <div class="end-tool" style="border-color:${p.rule};background:${p.dark?'rgba(245,241,232,0.04)':'rgba(26,29,46,0.03)'}">
         <div class="end-tool-label mono" style="color:${p.accent}">YOU'LL RECEIVE</div>
-        <div class="end-tool-name serif" style="color:${p.text}">${esc(tool)}</div>
+        <div class="end-tool-name serif" style="color:${p.text}">${esc(tool || '實用整理懶人包')}</div>
         ${toolSub ? `<div class="end-tool-sub" style="color:${p.mute}">${esc(toolSub)}</div>` : ''}
       </div>
     </div>
@@ -2401,7 +2417,7 @@ function cleanupAIContent(c) {
     }).filter(l => l !== '');
     while (c.s1.titleLines.length < 3) c.s1.titleLines.push('');
   }
-  // S5：清 placeholder
+  // S5：清 placeholder + 過濾空 row
   if (c.s5) {
     if (typeof c.s5.tag === 'string') {
       const t = c.s5.tag.trim().toUpperCase();
@@ -2410,16 +2426,29 @@ function cleanupAIContent(c) {
     c.s5.source = cleanStr(c.s5.source);
     c.s5.quote = cleanStr(c.s5.quote);
     c.s5.scenario = cleanStr(c.s5.scenario);
+    // v3.33：rows 中 label 或 val 任一空白就剔除（避免「差距」row 沒值）
+    if (Array.isArray(c.s5.rows)) {
+      c.s5.rows = c.s5.rows.filter(r => {
+        const lab = String(r?.label || '').trim();
+        const val = String(r?.val || '').trim();
+        return lab && val;
+      });
+    }
   }
   // S2/S3 subtitle 清 placeholder
   if (c.s2) c.s2.subtitle = cleanStr(c.s2.subtitle);
   if (c.s3) c.s3.subtitle = cleanStr(c.s3.subtitle);
   // S4 subtitleLines 清
   if (c.s4?.subtitleLines) c.s4.subtitleLines = c.s4.subtitleLines.map(cleanStr).filter(Boolean);
-  // S7 清
+  // S7 清 + v3.33 ・ ctaSub 重複 CTA 字眼偵測
   if (c.s7) {
     c.s7.ctaSub = cleanStr(c.s7.ctaSub);
     c.s7.toolSub = cleanStr(c.s7.toolSub);
+    // 如果 ctaSub 跟 headline 重複（含「底下留言」「↓」「傳給你」），清空讓 S7 用預設
+    if (c.s7.ctaSub && /底下留言|留言這|留言「|↓|↑|傳給你|私訊我|私訊「/.test(c.s7.ctaSub)) {
+      console.warn('[cleanup] S7 ctaSub 跟 headline 重複，清空:', c.s7.ctaSub);
+      c.s7.ctaSub = '';
+    }
   }
   // S4/S6 items 標題剝編號（防 AI 把 "01 標題" 直接當 t）
   const stripNum = s => String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/, '').trim();
