@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.28 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.29 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -886,6 +886,41 @@ function smartBreak(s) {
     '沒有','沒辦法','不行','不對','不好','不行','不可以','不一定','不見得',
     // 數字單位
     '萬人','個人','個月','個年','個季','次的','次以','個月','個項','分鐘','小時','日子',
+    // v3.29 補：常見動詞+受詞短語
+    '存錢','花錢','賺錢','付錢','收錢','省錢','理財','學會','學到','學完','看到','看完','聽到',
+    '想到','做到','找到','拿到','買到','賣掉','花掉','存到','存夠','付完','還完','繳完','賺到',
+    '想清楚','搞懂','想通','想開','想不到','看明白','想明白','算清楚','講清楚','說明白',
+    // 常見副詞+動詞
+    '已經','還沒','還在','還要','還能','已經','正在','即將','剛才','剛剛','剛好','剛剛好',
+    // 常見補語
+    '出來','起來','過來','下來','上去','下去','進去','出去','回來','回去','走過','看過','聽過',
+    // 常見否定組合
+    '不夠','不能','不行','不會','不要','不想','不該','不必','不用','不一定','不是','不對',
+    // 數字+人/件等
+    '多人','多件','多項','多次','多倍','多年','多個','多種','幾人','幾個','幾次','幾年','幾月',
+    // 常用語助/連接
+    '然後','接著','接下來','另外','此外','除此','此外','再來','後來','之前','之後','以前','以後',
+    // 常見問句尾
+    '什麼','怎麼','怎樣','如何','為何','哪裡','哪些','多少','幾個','幾種','哪個','哪種','是否',
+    // 標題常見開頭
+    '原來','其實','到底','究竟','所謂','根本','本來','原本','本身','原則','原因','根源',
+    // 結論常見
+    '才能','才會','才有','才行','才好','才對','也才','也只','也許','也會','也是','大概','大約','可能',
+    // 動作組合
+    '建立','養成','培養','維持','保持','堅持','打造','創造','改善','優化','加強','提升','降低','減少',
+    '增加','減少','放大','縮小','拉長','縮短','提早','延後','加速','減速','加快','放慢',
+    // 比較
+    '更好','更差','更貴','更便宜','更快','更慢','更高','更低','更大','更小','更多','更少','更穩',
+    // 業務人常用
+    '客戶','成交','約訪','簽約','保單','要保','受益','身故','繳費','繳期','期繳','躉繳','保期',
+    '紅利','還本','滿期','終身','定期','投資型','分紅型','養老','增額','預定','利變',
+    // 三字常用詞（用 substr 3 字檢查）
+    '不動產','信用卡','現金流','投資型','利變型','分紅型','終身型','還本型','現金價值',
+    '保險法','金管會','證券會','投信投顧','基金經理','投資組合','資產配置','財務規劃',
+    '個人理財','預算管理','儲蓄計畫','退休準備','緊急預備','風險管理','投資策略',
+    '時間管理','目標管理','專案管理','人力資源','商業模式','市場研究','客戶服務',
+    '長照險','失能險','重大疾病險','癌症險','意外險','旅平險','實支實付','日額型',
+    '主管機關','法律規定','法令規範','政府單位','金融機構','銀行業務',
   ]);
   // 中文常用「行尾允許字」— 切在這些字後面通常很自然（的/了/嗎/吧/啊/呢/罷）
   const NICE_BREAK_AFTER = new Set(['的','了','嗎','吧','啊','呢','罷','麼','喔','耶','啦','囉','呀']);
@@ -893,11 +928,13 @@ function smartBreak(s) {
   const isCJK = (ch) => /[一-鿿㐀-䶿]/.test(ch || '');
 
   const isBadSplit = (pos) => {
-    // v3.28：三層檢查 — 切點正好夾在複合詞中間（最關鍵）、切後 2 字、切前 2 字
-    // 切後第一個字 + 切點字 → 如「知|道」at pos=知 → splitPair = 知道
+    // v3.28：2 字詞檢查 — 切點正好夾在中間、切後 2 字、切前 2 字
     if (KEEP_TOGETHER.has(flat.slice(pos, pos+2))) return true;
     if (KEEP_TOGETHER.has(flat.slice(pos+1, pos+3))) return true;
     if (KEEP_TOGETHER.has(flat.slice(pos-1, pos+1))) return true;
+    // v3.29：3 字詞檢查 — 切點切到 3 字詞中間
+    if (KEEP_TOGETHER.has(flat.slice(pos-1, pos+2))) return true; // [pos-1][pos]|[pos+1]
+    if (KEEP_TOGETHER.has(flat.slice(pos, pos+3))) return true;   // [pos]|[pos+1][pos+2]
     return false;
   };
   // 加分項：切在「的/了」等字後面是自然斷句
@@ -1371,13 +1408,13 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(14px, 4.8cqi, 24px); font-weight:900; letter-spacing:.03em; line-height:1.38; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(17px, 5.8cqi, 28px); font-weight:900; letter-spacing:.03em; line-height:1.36; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:clamp(11px, 2.5cqi, 13px); line-height:2.0; letter-spacing:.04em; }
   .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:48px 56px 120px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:clamp(15px, 5.4cqi, 27px); font-weight:900; line-height:1.28; letter-spacing:.02em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .spread-title { font-size:clamp(18px, 6.4cqi, 31px); font-weight:900; line-height:1.26; letter-spacing:.02em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .spread-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
@@ -2099,6 +2136,37 @@ function getBrand() {
   };
 }
 
+// v3.29 ・ 從輸入文字裡偵測 @handle，自動設定 brand 並回傳「乾淨文字」(剔除署名行)
+function extractBrandFromText(text) {
+  const lines = text.split('\n');
+  const newLines = [];
+  let detectedName = null, detectedHandle = null;
+  for (const line of lines) {
+    const m = line.match(/(\S+?)\s*[．・·\.\s]+\s*(@\w+)/);
+    if (m && !detectedHandle) {
+      // 偵測到「品牌名 · @handle」格式 — 抽出
+      detectedName = m[1].replace(/^\s*[\-•・]\s*/,'').trim();
+      detectedHandle = m[2].trim();
+      continue; // 跳過這一行
+    }
+    // 單獨的 @handle 行也偵測
+    const m2 = line.match(/^\s*(@\w+)\s*$/);
+    if (m2 && !detectedHandle) {
+      detectedHandle = m2[1];
+      continue;
+    }
+    newLines.push(line);
+  }
+  // 去掉內容開頭跟結尾的空白行
+  while (newLines.length && !newLines[0].trim()) newLines.shift();
+  while (newLines.length && !newLines[newLines.length-1].trim()) newLines.pop();
+  return {
+    text: newLines.join('\n'),
+    name: detectedName,
+    handle: detectedHandle,
+  };
+}
+
 function saveBrand() {
   const b = getBrand();
   localStorage.setItem('wei_brand_name', b.name);
@@ -2113,8 +2181,87 @@ function loadBrand() {
 }
 
 // AI 生成後的清理 — 把明顯的 placeholder / slogan 殘留清掉
+// v3.29 ・ 金管會 / 保險法 / 證券法違規詞 → 安全詞替換表
+// 凡是「保證/必賺/穩賺」「月配/月領」「具體收益率承諾」都會被替換或刪除
+const COMPLIANCE_REPLACE = [
+  // 保證類（最敏感）
+  [/保證獲利/g, '預期報酬'],
+  [/保證賺錢/g, '可能有報酬'],
+  [/保證報酬/g, '預期報酬'],
+  [/保證收益/g, '預期收益'],
+  [/保證理賠/g, '依條款理賠'],
+  [/保證\s*\d+\s*%/g, '預期報酬'],
+  [/包賺不賠/g, '風險管理'],
+  [/穩賺不賠/g, '審慎評估'],
+  [/穩定獲利/g, '穩健配置'],
+  [/絕對賺/g, '可能有機會'],
+  [/必定賺/g, '可能有機會'],
+  [/一定賺/g, '可能有機會'],
+  [/必賺/g, '有機會'],
+  [/包賺/g, '可能'],
+  [/零風險/g, '低風險'],
+  [/沒有風險/g, '低風險'],
+  [/無風險/g, '低風險'],
+  [/高報酬零風險/g, '在可接受風險下追求報酬'],
+  // 月配 / 月領類（敏感）
+  [/月月現金流/g, '長期現金流規劃'],
+  [/月月配/g, '配息頻率'],
+  [/月月領/g, '定期領取'],
+  [/月領\s*\d+\s*(萬|元|%)/g, '依商品配息規則'],
+  [/每月固定領/g, '依商品配息規則'],
+  [/穩定領息/g, '依商品配息規則'],
+  [/穩定月配/g, '依商品配息規則'],
+  // 預測 / 內線類
+  [/內線消息/g, '公開資訊'],
+  [/必勝法則/g, '參考做法'],
+  [/穩賺法則/g, '參考做法'],
+  [/抓飆股/g, '研究標的'],
+  [/暴漲/g, '上漲'],
+  [/暴賺/g, '報酬'],
+  [/翻倍/g, '成長'],
+  // 浮誇副詞
+  [/獨家秘訣/g, '常見做法'],
+  [/秘密武器/g, '工具'],
+  [/最強/g, '推薦'],
+  [/史上最/g, '相當'],
+  // 證券業常見問題用詞
+  [/這檔必買/g, '可參考研究'],
+  [/閉著眼睛買/g, '深入研究後'],
+  [/穩穩賺/g, '審慎評估'],
+];
+const COMPLIANCE_FLAGS = [];
+
+function complianceClean(s) {
+  if (typeof s !== 'string') return s;
+  let out = s;
+  for (const [pat, rep] of COMPLIANCE_REPLACE) {
+    if (pat.test(out)) {
+      COMPLIANCE_FLAGS.push(s.match(pat)?.[0] + ' → ' + rep);
+      out = out.replace(pat, rep);
+    }
+  }
+  return out;
+}
+
+function complianceWalk(obj) {
+  if (typeof obj === 'string') return complianceClean(obj);
+  if (Array.isArray(obj)) return obj.map(complianceWalk);
+  if (obj && typeof obj === 'object') {
+    const out = {};
+    for (const k of Object.keys(obj)) out[k] = complianceWalk(obj[k]);
+    return out;
+  }
+  return obj;
+}
+
 function cleanupAIContent(c) {
   if (!c || typeof c !== 'object') return c;
+  // v3.29：先過合規檢查
+  COMPLIANCE_FLAGS.length = 0;
+  c = complianceWalk(c);
+  if (COMPLIANCE_FLAGS.length > 0) {
+    console.warn('[合規] 自動替換違規詞：', [...new Set(COMPLIANCE_FLAGS)]);
+  }
   const PH = ['ENGLISH','淺顯一句','結語金句','TAG','placeholder','主標一句話','8字內主標','你的名字','標題第'];
   const cleanStr = v => {
     if (typeof v !== 'string') return v;
@@ -2858,11 +3005,28 @@ function extractJSON(text) {
 
 // ─── Smart Generate ───────────────────────────────────────────────────────
 async function smartGenerate() {
-  const text = $topic.value.trim();
+  let text = $topic.value.trim();
   if (!text) {
     setStatus('請輸入文字或 JSON', true);
     return;
   }
+
+  // v3.29：偵測署名「品牌名．@handle」自動設 brand + 從文字剔除避免重複
+  const looksLikeJSON_pre = text.startsWith('{') || text.startsWith('[');
+  if (!looksLikeJSON_pre) {
+    const brand = extractBrandFromText(text);
+    if (brand.handle) {
+      const $bn = document.getElementById('brand-name');
+      const $bh = document.getElementById('brand-handle');
+      if ($bh && brand.handle) $bh.value = brand.handle;
+      if ($bn && brand.name) $bn.value = brand.name;
+      saveBrand();
+      text = brand.text; // 用剔除過的文字
+      console.log('[brand] 自動偵測：', brand.name, brand.handle);
+    }
+  }
+  // 用清理過的文字繼續流程
+  $topic._cleaned = text;
 
   // v3.22：輸入長度檢查 — 太短就直接擋，避免生出空殼
   // 若是 JSON / slides[] 格式，跳過此檢查（已有完整結構）
