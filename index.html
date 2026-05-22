@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.30 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.31 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -942,20 +942,20 @@ function smartBreak(s) {
   // 扣分項：兩邊都是 CJK 但不是 NICE_AFTER → 是切在詞中間
   const isCJKMid = (pos) => isCJK(flat[pos]) && isCJK(flat[pos+1]) && !isNiceAfter(pos) && !isBadSplit(pos);
 
-  // v3.28 ・ 找區間 [lo, hi] 內最佳斷點（分桶排序）
-  // 優先順序：句號/問號 > 逗號/頓號 > 空白 > 「的/了」結尾 > CJK 跟非 CJK 邊界 > 不切複合詞的 CJK 中間 > 中點硬切
+  // v3.31 ・ 嚴格斷句：兩個 CJK 字中間絕不切，寧可整行不切讓 autoFit 縮字
+  // 優先順序：句號 > 逗號 > 空白 > 「的/了」結尾 > CJK<->非CJK 邊界
+  // 如果以上都沒有 → 回傳 -1（表示這段不該切）
   const findBreak = (lo, hi) => {
     lo = Math.max(0, lo);
     hi = Math.min(L-1, hi);
-    const heavy=[], light=[], spaces=[], nice=[], boundary=[], safeCJK=[];
+    const heavy=[], light=[], spaces=[], nice=[], boundary=[];
     for (let i=lo;i<=hi;i++) {
       const c = flat[i];
       if (/[。！？!?]/.test(c)) heavy.push(i);
       else if (/[，、,]/.test(c)) light.push(i);
       else if (/[\s　]/.test(c)) spaces.push(i);
       else if (isNiceAfter(i) && isCJK(flat[i+1])) nice.push(i);
-      else if (isCJK(c) !== isCJK(flat[i+1])) boundary.push(i); // CJK <-> 非 CJK 邊界（如「萬」+「的」前的位置；或數字後面）
-      else if (!isBadSplit(i) && !isCJKMid(i)) safeCJK.push(i);
+      else if (isCJK(c) !== isCJK(flat[i+1])) boundary.push(i);
     }
     const pickMid = (arr) => arr[Math.floor(arr.length/2)];
     if (heavy.length) return pickMid(heavy);
@@ -963,27 +963,27 @@ function smartBreak(s) {
     if (spaces.length) return pickMid(spaces);
     if (nice.length) return pickMid(nice);
     if (boundary.length) return pickMid(boundary);
-    if (safeCJK.length) return pickMid(safeCJK);
-    // 最後手段：找一個不在 KEEP_TOGETHER 的 CJK 位置
-    for (let i = Math.floor((lo+hi)/2); i <= hi; i++) {
-      if (!isBadSplit(i)) return i;
-    }
-    return Math.floor((lo+hi)/2);
+    return -1; // 找不到安全斷點 → 不切
   };
 
+  // v3.31：擴大搜尋範圍找安全斷點，如果找不到就整段不切（autoFit 縮字處理）
   if (L <= 19) {
-    // 兩行：擴大搜尋範圍 25%-75%，給 findBreak 更多選擇
-    const b = findBreak(Math.floor(L*0.25), Math.floor(L*0.75));
+    let b = findBreak(Math.floor(L*0.25), Math.floor(L*0.75));
+    if (b < 0) b = findBreak(2, L-2); // 擴大範圍再找一次
+    if (b < 0) return flat; // 完全找不到安全斷點 → 不切，autoFit 縮字
     return flat.slice(0,b+1).trim() + '\n' + flat.slice(b+1).trim();
   }
   // 三行：兩個斷點
-  const b1 = findBreak(Math.floor(L*0.20), Math.floor(L*0.45));
-  const b2 = findBreak(Math.floor(L*0.55), Math.floor(L*0.80));
-  if (b2 > b1) {
+  let b1 = findBreak(Math.floor(L*0.20), Math.floor(L*0.45));
+  let b2 = findBreak(Math.floor(L*0.55), Math.floor(L*0.80));
+  if (b1 < 0) b1 = findBreak(2, Math.floor(L*0.5));
+  if (b2 < 0) b2 = findBreak(Math.floor(L*0.5)+1, L-2);
+  if (b1 >= 0 && b2 >= 0 && b2 > b1) {
     return flat.slice(0,b1+1).trim() + '\n' + flat.slice(b1+1,b2+1).trim() + '\n' + flat.slice(b2+1).trim();
   }
-  // fallback 兩行
-  const b = findBreak(Math.floor(L*0.25), Math.floor(L*0.75));
+  // 三行找不到 → 退回兩行
+  let b = findBreak(2, L-2);
+  if (b < 0) return flat; // 都找不到 → 不切
   return flat.slice(0,b+1).trim() + '\n' + flat.slice(b+1).trim();
 }
 const nlToDiv = s => smartBreak(s).split('\n').map(l => `<div>${esc(l)}</div>`).join('');
@@ -1467,14 +1467,15 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(17px, 5.8cqi, 28px); font-weight:900; letter-spacing:.08em; line-height:1.42; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
-  .cover-v2-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  /* v3.31：縮 2pt，字距不動，嚴禁詞中斷句 */
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(15px, 5.2cqi, 25px); font-weight:900; letter-spacing:.08em; line-height:1.42; max-width:100%; width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
+  .cover-v2-title > div { max-width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; white-space:normal; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:clamp(11px, 2.5cqi, 13px); line-height:2.0; letter-spacing:.04em; }
   .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:48px 56px 120px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:clamp(18px, 6.4cqi, 31px); font-weight:900; line-height:1.32; letter-spacing:.06em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
-  .spread-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .spread-title { font-size:clamp(16px, 5.8cqi, 28px); font-weight:900; line-height:1.32; letter-spacing:.06em; margin-bottom:10px; max-width:100%; width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
+  .spread-title > div { max-width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; white-space:normal; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
   .spread-left .spread-rule { margin-left:0; }
@@ -1672,33 +1673,42 @@ window.next=function(){console.log('[NEXT] from',cur);goto((cur+1)%total);};
 function autoFit(){_safe(()=>{
   const active=document.querySelector('.sl.is-active');
   if(!active)return;
-  // 階段 0：強制重置先前的 inline font-size，重新測量
+  // v3.31 ・ 階段 0：用 canvas 量字寬 + 把 letter-spacing 算進去，找最緊字級讓每行剛好放進
   const titleEls=active.querySelectorAll('.cover-v2-title, .spread-title');
   titleEls.forEach(t => {
-    // 找出最長的子 div（中文字數）
     const lines=[...t.children].filter(c=>c.tagName==='DIV');
     if(!lines.length) return;
     const containerW = t.clientWidth;
     if(containerW<=0) return;
-    // 用 canvas 測量字寬，找最緊的字級讓最長行剛好放進去
     const cs = getComputedStyle(t);
     const fontFamily = cs.fontFamily;
     const fontWeight = cs.fontWeight;
     const startSize = parseFloat(cs.fontSize);
-    const minSize = 12;
-    let bestSize = startSize;
+    // letter-spacing 算成 em 比例（CSS .08em = 0.08）
+    const lsStr = cs.letterSpacing;
+    let lsEm = 0;
+    if (lsStr && lsStr !== 'normal') {
+      const lsPx = parseFloat(lsStr);
+      if (!isNaN(lsPx)) lsEm = lsPx / startSize;
+    }
+    const minSize = 11; // 比之前 12 更小，給長標題更多縮空間
+    let bestSize = minSize; // 預設用最小，找到能放才更新
     const cv = document.createElement('canvas');
     const ctx = cv.getContext('2d');
     for (let s = startSize; s >= minSize; s -= 0.5) {
       ctx.font = fontWeight+' '+s+'px '+fontFamily;
       let allFit = true;
       for (const line of lines) {
-        const w = ctx.measureText(line.innerText||line.textContent||'').width;
-        if (w > containerW - 2) { allFit = false; break; }
+        const text = (line.innerText||line.textContent||'');
+        if (!text.trim()) continue;
+        const baseW = ctx.measureText(text).width;
+        // 加 letter-spacing 累計（每字一個 letter-spacing）
+        const w = baseW + (text.length - 1) * s * lsEm;
+        if (w > containerW - 4) { allFit = false; break; }
       }
       if (allFit) { bestSize = s; break; }
     }
-    if (bestSize < startSize) {
+    if (bestSize !== startSize) {
       t.style.fontSize = bestSize + 'px';
       lines.forEach(l => l.style.fontSize = 'inherit');
     }
@@ -2774,31 +2784,16 @@ function parseTextHeuristic(text) {
   // 2. 主題有 ≥2 個標點斷點 → 用標點斷成 2-3 行
   // 3. 主題夠長且無標點 → 用空格切 2 行
   // 4. 短標題 → 1 行就好（不要硬切，讓 CSS 處理）
+  // v3.31：splitTitle 直接用 smartBreak 處理，確保不切詞中
   const splitTitle = (t) => {
     if (!t) return ['','',''];
     t = t.trim();
-    // 用標點斷
-    const punctParts = t.split(/[，,。！？]/g).map(s => s.trim()).filter(s => s.length > 0);
-    if (punctParts.length >= 2) {
-      const result = punctParts.slice(0, 3);
-      while (result.length < 3) result.push('');
-      return result;
-    }
-    // 短 ≤14 字 → 1 行
-    if (t.length <= 14) return [t, '', ''];
-    // 長標題沒標點 → 找最近中點的空格切 2 行
-    const mid = Math.floor(t.length / 2);
-    const spaces = [];
-    for (let i = 2; i < t.length - 2; i++) {
-      if (/[\s　]/.test(t[i])) spaces.push(i);
-    }
-    if (spaces.length > 0) {
-      const best = spaces.reduce((a,b) => Math.abs(b-mid) < Math.abs(a-mid) ? b : a);
-      return [t.slice(0, best).trim(), t.slice(best).trim(), ''];
-    }
-    // 無空格無標點 → 用 smartBreak 邏輯切中
-    const chunk = Math.ceil(t.length / 2);
-    return [t.slice(0, chunk), t.slice(chunk), ''];
+    if (t.length <= 14) return [t, '', '']; // 短 → 1 行就好
+    // 用 smartBreak 切（已含複合詞保護）
+    const parts = smartBreak(t).split('\n').map(s => s.trim()).filter(Boolean);
+    const result = parts.slice(0, 3);
+    while (result.length < 3) result.push('');
+    return result;
   };
 
   // 先看 firstPara 是否本來就是「多行短句」格式
