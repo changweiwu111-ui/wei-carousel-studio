@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.31 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.32 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1507,8 +1507,9 @@ const SLIDE_CSS = `
   .data-scenario { font-size:15px; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:8px; font-weight:500; }
   .data-tag { font-size:8px; margin-bottom:12px; letter-spacing:.22em; }
   .data-hero { display:flex; align-items:baseline; gap:8px; margin-bottom:18px; flex-wrap:nowrap; }
-  .data-big { font-size:clamp(56px, 18cqi, 88px); font-weight:900; line-height:1; letter-spacing:-.01em; font-feature-settings:'lnum' 1, 'tnum' 1; }
-  .data-unit { font-size:clamp(16px, 4.5cqi, 22px); letter-spacing:.04em; font-weight:600; white-space:nowrap; line-height:1.2; }
+  /* v3.32：縮 8px、強制單行不換、autoFit 會再縮 */
+  .data-big { font-size:clamp(36px, 11cqi, 72px); font-weight:900; line-height:1; letter-spacing:-.01em; font-feature-settings:'lnum' 1, 'tnum' 1; white-space:nowrap; }
+  .data-unit { font-size:clamp(14px, 3.8cqi, 20px); letter-spacing:.04em; font-weight:600; white-space:nowrap; line-height:1.2; }
   .data-source { font-size:14px; font-weight:500; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:16px; }
   .data-rule { width:100%; height:.5px; margin-bottom:14px; }
   .data-table { width:100%; margin-bottom:14px; }
@@ -1718,9 +1719,9 @@ function autoFit(){_safe(()=>{
   targets.forEach(el=>{
     if(!el.dataset._fit){el.dataset._fit=getComputedStyle(el).fontSize;}
     let size=parseFloat(getComputedStyle(el).fontSize);
-    const minSize=size>40?28:(size>20?13:11);
+    const minSize=size>40?24:(size>20?13:11);
     let attempts=0;
-    while(attempts<80 && size>minSize){
+    while(attempts<100 && size>minSize){
       const overflowH=el.scrollWidth>el.clientWidth+1;
       const lh=parseFloat(getComputedStyle(el).lineHeight)||size*1.4;
       const maxLines=el.parentElement?.classList.contains('spread-title')||el.parentElement?.classList.contains('cover-v2-title')?1:2;
@@ -1731,6 +1732,24 @@ function autoFit(){_safe(()=>{
       attempts++;
     }
   });
+  // v3.32 ・ 階段 1.5：data-hero 整組（big + unit）超出 .spread 寬度時縮 data-big
+  const hero=active.querySelector('.data-hero');
+  if (hero) {
+    const heroParent=hero.parentElement;
+    const big=hero.querySelector('.data-big');
+    const unit=hero.querySelector('.data-unit');
+    if (big && heroParent) {
+      const availW=heroParent.clientWidth - 4;
+      let bigSize=parseFloat(getComputedStyle(big).fontSize);
+      let guard=0;
+      while (guard<60 && bigSize>22 && hero.scrollWidth > availW) {
+        bigSize -= 1;
+        big.style.fontSize = bigSize + 'px';
+        if (unit) unit.style.fontSize = Math.max(12, bigSize * 0.28) + 'px';
+        guard++;
+      }
+    }
+  }
   // 階段 2：整頁高度檢查 — 如果內容區還是超出 frame，整體再縮一次
   ['.spread', '.cover-v2', '.end-frame'].forEach(sel=>{
     const frame=active.querySelector(sel);
