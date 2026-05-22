@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.29 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.30 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1016,8 +1016,9 @@ function footer(p, n, total, cat, brand) {
 function pageBg(d, ctx, pageIdx, theme) {
   const dk = theme === 'ink' || theme === 'noir';
   const img = resolvePageImage(d, ctx, pageIdx);
-  const op = dk ? 0.08 : 0.06; // 深色主題稍亮
-  return `<div style="position:absolute;inset:0;background:url('${img}') center top/cover;opacity:${op};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0;pointer-events:none"></div>`;
+  const op = dk ? 0.08 : 0.06;
+  const fb = 'https://picsum.photos/seed/' + encodeURIComponent('p'+pageIdx+(ctx?.allText||'').slice(0,20)) + '/1080/1350';
+  return `<img src="${img}" alt="" onerror="this.onerror=null;this.src='${fb}';" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${op};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0;pointer-events:none">`;
 }
 
 // v3.27 ・ 主題關鍵字 → Unsplash 圖片對應表（精選公開圖）
@@ -1107,6 +1108,51 @@ function _topicHashtags(text) {
   return TOPIC_HASHTAGS[topic].join(' ');
 }
 
+// v3.30 ・ 主題對應 CTA 關鍵字 + 工具名稱（沒手填時自動套用）
+const TOPIC_CTA = {
+  car: {keyword: '購車', tool: '購車檢核清單'},
+  money: {keyword: '理財', tool: '個人財務檢視表'},
+  invest: {keyword: '配置', tool: '資產配置模板'},
+  house: {keyword: '購屋', tool: '購屋負擔試算表'},
+  insurance: {keyword: '保障', tool: '保障缺口檢視表'},
+  travel: {keyword: '旅遊', tool: '旅遊預算規劃表'},
+  food: {keyword: '推薦', tool: '美食精選清單'},
+  health: {keyword: '計畫', tool: '健身入門指南'},
+  work: {keyword: '職涯', tool: '職涯規劃工作表'},
+  study: {keyword: '學習', tool: '學習進度追蹤表'},
+  family: {keyword: '規劃', tool: '家庭預算模板'},
+  mind: {keyword: '成長', tool: '自我成長清單'},
+  abstract: {keyword: '清單', tool: '實用整理懶人包'},
+};
+
+// 從內容 + S7 既有資訊智能產出 CTA
+function autoCTA(content) {
+  // 先看 content 是否已有明確 keyword/tool 提示
+  const text = [
+    (content.s1?.titleLines||[]).join(' '),
+    content.s2?.title || '',
+    content.s3?.title || '',
+    content.s4?.title || '',
+    content.s6?.title || '',
+    content.s7?.ctaSub || '',
+  ].join(' ');
+
+  // 找「我整理了 XX」「XX 清單/檢核/表/模板/手冊」這類 pattern
+  const toolMatch = text.match(/([一-龥A-Z0-9]{2,12})(清單|檢核表|檢視表|計算表|試算表|模板|手冊|懶人包|指南|地圖|工作表|追蹤表|筆記)/);
+  let detectedTool = toolMatch ? toolMatch[0] : null;
+
+  // 主題判斷做 fallback
+  const topic = _detectTopic(text);
+  const def = TOPIC_CTA[topic] || TOPIC_CTA.abstract;
+
+  // 從主題或內容找關鍵字（2-4 字 Chinese）
+  // 優先順序：用 _detectTopic 找出的主題 keyword
+  return {
+    keyword: def.keyword,
+    tool: detectedTool || def.tool,
+  };
+}
+
 function _coverSeed(d){
   if(d.imageSeed)return String(d.imageSeed);
   const text=(d.titleLines||[]).join('')+(d.bodyLines||[]).join('')+(d.meta||'');
@@ -1172,13 +1218,15 @@ function S1(d, theme, ctx, brand) {
   const thinC = dk ? 'rgba(255,255,255,.12)' : 'rgba(28,28,30,.10)';
   const img = resolveCoverImage(d, ctx);
   const rgb = theme==='ink'?'26,39,68':theme==='noir'?'14,14,18':theme==='paper'?'250,250,248':'245,241,232';
+  // v3.30：圖片更明顯，gradient 對標題區半透明保護
   const grad = dk
-    ? `linear-gradient(to bottom,rgba(${rgb},.30),rgba(${rgb},.05) 35%,rgba(${rgb},.45) 70%,rgba(${rgb},.88))`
-    : `linear-gradient(to bottom,rgba(${rgb},.10),rgba(${rgb},.0) 35%,rgba(${rgb},.30) 70%,rgba(${rgb},.78))`;
+    ? `linear-gradient(to bottom,rgba(${rgb},.20),rgba(${rgb},.02) 30%,rgba(${rgb},.35) 65%,rgba(${rgb},.82))`
+    : `linear-gradient(to bottom,rgba(${rgb},.05),rgba(${rgb},.0) 30%,rgba(${rgb},.25) 65%,rgba(${rgb},.72))`;
   const metaText = d.meta || d.eyebrow || '';
+  const imgFallback = 'https://picsum.photos/seed/' + encodeURIComponent(_coverSeed(d)) + '/1080/1350';
 
   return `<div class="sl" style="background:${p.bg}">
-    <div style="position:absolute;inset:0;background:url('${img}') center top/cover;opacity:${dk?'.18':'.13'};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0"></div>
+    <img src="${img}" alt="" onerror="this.onerror=null;this.src='${imgFallback}';" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${dk?'.28':'.24'};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0;pointer-events:none">
     <div style="position:absolute;inset:0;z-index:1;background:${grad}"></div>
     <div style="position:absolute;top:38px;right:38px;width:32px;height:32px;border-top:.5px solid ${cornerC};border-right:.5px solid ${cornerC};z-index:2;pointer-events:none"></div>
     <div style="position:absolute;bottom:88px;right:32px;width:24px;height:24px;border-bottom:.5px solid ${cornerC};border-right:.5px solid ${cornerC};z-index:2;pointer-events:none"></div>
@@ -1307,10 +1355,21 @@ function S5(d, theme, ctx, brand) {
     <div class="spread spread-left">
       <div class="data-scenario" style="color:${p.subText}">${esc(d.scenario)}</div>
       <div class="data-tag mono" style="color:${p.accent}">${esc(d.tag)}</div>
-      <div class="data-hero">
-        <span class="data-big serif" style="color:${p.text}">${esc(d.bigNumber)}</span>
-        <span class="data-unit serif" style="color:${p.subText}">${esc(d.unit)}</span>
-      </div>
+      ${(() => {
+        // v3.30：清理大數字 — 拿掉重複 unit、用法統一
+        let bn = String(d.bigNumber||'').trim();
+        let un = String(d.unit||'').trim();
+        if (!bn) return ''; // 空 → 不渲染
+        // 如果 bigNumber 已包含 unit（如 "67%"），就不要再顯示獨立 unit
+        if (un && bn.endsWith(un)) { un = ''; }
+        // 如果 bigNumber 結尾是 %，並 unit 是 % → 移除 unit
+        if (un === '%' && /%$/.test(bn)) un = '';
+        // 如果 bigNumber 是純數字，unit 是「萬/年/個/次」等，分開顯示
+        return `<div class="data-hero">
+          <span class="data-big serif" style="color:${p.accent}">${esc(bn)}</span>
+          ${un ? `<span class="data-unit serif" style="color:${p.subText}">${esc(un)}</span>` : ''}
+        </div>`;
+      })()}
       <div class="data-source" style="color:${p.subText}">${esc(d.source||'')}</div>
       <div class="data-rule" style="background:${p.rule}"></div>
       <div class="data-table">${rows}</div>
@@ -1408,13 +1467,13 @@ const SLIDE_CSS = `
   .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(17px, 5.8cqi, 28px); font-weight:900; letter-spacing:.03em; line-height:1.36; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(17px, 5.8cqi, 28px); font-weight:900; letter-spacing:.08em; line-height:1.42; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
   .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:clamp(11px, 2.5cqi, 13px); line-height:2.0; letter-spacing:.04em; }
   .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:48px 56px 120px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:clamp(18px, 6.4cqi, 31px); font-weight:900; line-height:1.26; letter-spacing:.02em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .spread-title { font-size:clamp(18px, 6.4cqi, 31px); font-weight:900; line-height:1.32; letter-spacing:.06em; margin-bottom:10px; max-width:100%; width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .spread-title > div { max-width:100%; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
@@ -1446,9 +1505,9 @@ const SLIDE_CSS = `
   .protocol-rule { width:100%; height:.5px; }
   .data-scenario { font-size:15px; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:8px; font-weight:500; }
   .data-tag { font-size:8px; margin-bottom:12px; letter-spacing:.22em; }
-  .data-hero { display:flex; align-items:baseline; gap:14px; margin-bottom:14px; flex-wrap:nowrap; }
-  .data-big { font-size:72px; font-weight:900; line-height:1; letter-spacing:-.02em; }
-  .data-unit { font-size:20px; letter-spacing:.03em; font-weight:600; white-space:nowrap; line-height:1.2; }
+  .data-hero { display:flex; align-items:baseline; gap:8px; margin-bottom:18px; flex-wrap:nowrap; }
+  .data-big { font-size:clamp(56px, 18cqi, 88px); font-weight:900; line-height:1; letter-spacing:-.01em; font-feature-settings:'lnum' 1, 'tnum' 1; }
+  .data-unit { font-size:clamp(16px, 4.5cqi, 22px); letter-spacing:.04em; font-weight:600; white-space:nowrap; line-height:1.2; }
   .data-source { font-size:14px; font-weight:500; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:16px; }
   .data-rule { width:100%; height:.5px; margin-bottom:14px; }
   .data-table { width:100%; margin-bottom:14px; }
@@ -2254,6 +2313,33 @@ function complianceWalk(obj) {
   return obj;
 }
 
+// v3.30 ・ 標題過長自動精簡 — 拿掉「主題：」前綴、贅字、收尾語助
+function compactTitle(t, maxLen) {
+  if (!t || typeof t !== 'string') return t;
+  let s = t.trim()
+    .replace(/^(主題|題目|標題)[:：]\s*/, '')
+    .replace(/^【.*?】\s*/, '')
+    .replace(/[「」"']/g, '')
+    .replace(/\s{2,}/g, ' ');
+  // 還是太長 → 切掉副標部分（從最後一個 「，」「。」「 — 」「：」之後砍）
+  if (s.length > maxLen) {
+    // 找最後一個標點，後半段砍掉（保留主標）
+    const cut = Math.max(s.lastIndexOf('，'), s.lastIndexOf('，'), s.lastIndexOf('。'), s.lastIndexOf('：'));
+    if (cut > maxLen * 0.55 && cut < s.length - 1) {
+      s = s.slice(0, cut).trim();
+    }
+  }
+  // 還是太長 → 砍尾巴語助詞「了/嗎/吧/啊/呢/喔」
+  if (s.length > maxLen) {
+    s = s.replace(/[了嗎吧啊呢喔耶啦囉呀]+$/g, '');
+  }
+  // 最後手段：硬截斷
+  if (s.length > maxLen + 2) {
+    s = s.slice(0, maxLen).trim();
+  }
+  return s;
+}
+
 function cleanupAIContent(c) {
   if (!c || typeof c !== 'object') return c;
   // v3.29：先過合規檢查
@@ -2262,6 +2348,12 @@ function cleanupAIContent(c) {
   if (COMPLIANCE_FLAGS.length > 0) {
     console.warn('[合規] 自動替換違規詞：', [...new Set(COMPLIANCE_FLAGS)]);
   }
+  // v3.30：標題長度上限（依各 slide 設計）
+  if (c.s1?.titleLines) c.s1.titleLines = c.s1.titleLines.map(l => compactTitle(l, 12));
+  if (c.s2?.title) c.s2.title = compactTitle(c.s2.title, 22);
+  if (c.s3?.title) c.s3.title = compactTitle(c.s3.title, 22);
+  if (c.s4?.title) c.s4.title = compactTitle(c.s4.title, 14);
+  if (c.s6?.title) c.s6.title = compactTitle(c.s6.title, 22);
   const PH = ['ENGLISH','淺顯一句','結語金句','TAG','placeholder','主標一句話','8字內主標','你的名字','標題第'];
   const cleanStr = v => {
     if (typeof v !== 'string') return v;
@@ -2373,8 +2465,12 @@ function generate() {
   }
   // v3.12：清掉 AI 殘留的 placeholder / slogan
   content = cleanupAIContent(content);
-  const kw   = ($keyword.value || '結構').trim();
-  const tool = ($tool.value || '個人現金流檢查表').trim();
+  // v3.30：CTA 關鍵字 + 工具名 — 沒填就從內容自動產
+  const auto = autoCTA(content);
+  let kw = ($keyword.value || '').trim();
+  let tool = ($tool.value || '').trim();
+  if (!kw) { kw = auto.keyword; if ($keyword) $keyword.value = kw; }
+  if (!tool) { tool = auto.tool; if ($tool) $tool.value = tool; }
   const brand = getBrand();
   saveBrand();
   const html = buildCarouselHTML(content, kw, tool, currentTheme, brand);
