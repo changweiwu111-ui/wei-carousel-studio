@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.35 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.36 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1348,7 +1348,7 @@ function S4(d, theme, ctx, brand) {
     <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
     ${topRule(p,4,'THE METHOD')}
     <div class="spread spread-left">
-      <div class="spread-title serif" style="color:${p.text}">${esc(d.title)}</div>
+      <div class="spread-title serif" style="color:${p.text}">${nlToDiv(d.title)}</div>
       <div class="spread-deck" style="color:${p.subText}">
         ${(d.subtitleLines||[]).map(l => `<div>${esc(l)}</div>`).join('')}
       </div>
