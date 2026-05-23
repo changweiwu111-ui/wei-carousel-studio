@@ -15,7 +15,7 @@ RED='\033[38;5;203m'
 RESET='\033[0m'
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SOURCE_FILE="$HOME/Downloads/carousel-studio.html"
+SOURCE_FILE="$HOME/Documents/_韋總裁工作區/05_IG內容創作/輪播HTML/carousel-studio.html"
 TARGET_FILE="$REPO_DIR/index.html"
 LIVE_URL="https://changweiwu111-ui.github.io/wei-carousel-studio/"
 

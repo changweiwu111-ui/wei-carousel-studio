@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.34 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.35 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -813,7 +813,7 @@ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 function smartBreak(s) {
   const flat = String(s||'').replace(/\n+/g,'').trim();
   const L = flat.length;
-  if (L <= 10) return flat;
+  if (L <= 12) return flat; // v3.35：12 字以下整段不切，避免「什麼」單字孤行
 
   // v3.28 ・ 中文常見不可分複合詞（≈300 詞，涵蓋金融、生活、職場、家庭、學習等領域）
   const KEEP_TOGETHER = new Set([
@@ -943,8 +943,14 @@ function smartBreak(s) {
   const isCJKMid = (pos) => isCJK(flat[pos]) && isCJK(flat[pos+1]) && !isNiceAfter(pos) && !isBadSplit(pos);
 
   // v3.31 ・ 嚴格斷句：兩個 CJK 字中間絕不切，寧可整行不切讓 autoFit 縮字
+  // v3.35 ・ 加平衡檢查：任一邊 < 4 字就拒絕該斷點，避免「什麼」「就是」獨佔一行
   // 優先順序：句號 > 逗號 > 空白 > 「的/了」結尾 > CJK<->非CJK 邊界
   // 如果以上都沒有 → 回傳 -1（表示這段不該切）
+  const isBalanced = (pos) => {
+    const left = pos + 1; // line 1 字數
+    const right = L - left; // line 2 字數
+    return left >= 4 && right >= 4;
+  };
   const findBreak = (lo, hi) => {
     lo = Math.max(0, lo);
     hi = Math.min(L-1, hi);
@@ -957,13 +963,22 @@ function smartBreak(s) {
       else if (isNiceAfter(i) && isCJK(flat[i+1])) nice.push(i);
       else if (isCJK(c) !== isCJK(flat[i+1])) boundary.push(i);
     }
+    // v3.35：先用平衡 filter，再 pickMid（如果都不平衡就放寬）
+    const balanced = (arr) => arr.filter(isBalanced);
     const pickMid = (arr) => arr[Math.floor(arr.length/2)];
-    if (heavy.length) return pickMid(heavy);
-    if (light.length) return pickMid(light);
-    if (spaces.length) return pickMid(spaces);
-    if (nice.length) return pickMid(nice);
-    if (boundary.length) return pickMid(boundary);
-    return -1; // 找不到安全斷點 → 不切
+    const pickClosestMid = (arr) => arr.reduce((a,b) => Math.abs(b - L/2) < Math.abs(a - L/2) ? b : a);
+    const fromBucket = (arr) => {
+      if (!arr.length) return -1;
+      const bal = balanced(arr);
+      return bal.length ? pickClosestMid(bal) : pickMid(arr);
+    };
+    let b;
+    b = fromBucket(heavy);   if (b >= 0) return b;
+    b = fromBucket(light);   if (b >= 0) return b;
+    b = fromBucket(spaces);  if (b >= 0) return b;
+    b = fromBucket(nice);    if (b >= 0) return b;
+    b = fromBucket(boundary);if (b >= 0) return b;
+    return -1;
   };
 
   // v3.31：擴大搜尋範圍找安全斷點，如果找不到就整段不切（autoFit 縮字處理）
