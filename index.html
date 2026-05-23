@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.33 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.34 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1024,6 +1024,11 @@ function pageBg(d, ctx, pageIdx, theme) {
 // v3.27 ・ 主題關鍵字 → Unsplash 圖片對應表（精選公開圖）
 // 每個類別 5-8 張圖讓 hash 分散選；不命中任何類別用 picsum 隨機
 const TOPIC_IMAGES = {
+  // v3.34 ・ AI / 科技 / 半導體（要排最前面，避免被 invest 攔截）
+  ai: {
+    kw: /輝達|nvidia|黃仁勳|jensen|AI|人工智慧|機器學習|半導體|晶片|chip|GPU|deep\s?learning|ChatGPT|gpt|llm|大模型|台積電|tsmc|科技股/i,
+    ids: ['1620712943543-bcc4688e7485','1518770660439-4636190af475','1542831371-29b0f74f9713','1635070041078-e363dbe005cb','1639762681485-074b7f938ba0','1485827404703-89b55fcc595e','1591453089816-0fbb971b454c','1591696331111-ef9586a5b17a','1573164574001-518958d9baa2','1639322537228-f710d846310a','1551288049-bebda4e38f71'],
+  },
   car: { // 車、汽車、機車、tesla、開車、駕駛
     kw: /車|tesla|電動車|機車|汽車|駕駛|開車|油價|car|drive|vehicle/i,
     ids: ['1503376780353-7e6692767b70','1492144534655-ae79c964c9d7','1494976388531-d1058494cdd8','1542362567-b07e54358753','1552519507-da3b142c6e3d','1583121274602-3e2820c69888'],
@@ -1088,6 +1093,7 @@ function _detectTopic(text) {
 
 // v3.28 ・ 主題對應 hashtag（每個主題 6-8 個常用 IG 標籤）
 const TOPIC_HASHTAGS = {
+  ai: ['#AI投資','#半導體','#科技股','#輝達','#NVIDIA','#資產配置','#投資觀念','#理財規劃','#上班族理財'],
   car: ['#汽車','#電動車','#tesla','#購車','#車貸','#油價','#開車','#車子保養'],
   money: ['#理財','#財務自由','#個人理財','#預算管理','#儲蓄','#理財規劃','#理財新手','#存錢'],
   invest: ['#投資','#ETF','#股票','#被動收入','#指數投資','#複利','#理財規劃','#投資理財'],
@@ -1110,6 +1116,7 @@ function _topicHashtags(text) {
 
 // v3.30 ・ 主題對應 CTA 關鍵字 + 工具名稱（沒手填時自動套用）
 const TOPIC_CTA = {
+  ai: {keyword: '配置', tool: '資產配置健檢清單'},
   car: {keyword: '購車', tool: '購車檢核清單'},
   money: {keyword: '理財', tool: '個人財務檢視表'},
   invest: {keyword: '配置', tool: '資產配置模板'},
