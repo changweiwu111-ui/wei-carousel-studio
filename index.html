@@ -6,7 +6,7 @@
 <title>韋總裁輪播生成器 ・ STUDIO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;0,900;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:       #0A1426;
@@ -723,8 +723,8 @@
           <div class="sw-tag">INK</div>
         </button>
         <button class="sw" data-theme="noir" onclick="selectTheme('noir')">
-          <div class="sw-circle" style="background:#0E0E12"></div>
-          <div class="sw-name">近黑</div>
+          <div class="sw-circle" style="background:linear-gradient(135deg,#0E0E12 50%,#F2F0EB 50%)"></div>
+          <div class="sw-name">淨黑</div>
           <div class="sw-tag">NOIR</div>
         </button>
         <button class="sw" data-theme="paper" onclick="selectTheme('paper')">
@@ -1210,7 +1210,180 @@ function resolvePageImage(d, ctx, pageIdx) {
   return 'https://images.unsplash.com/photo-' + pool[idx] + '?w=1080&h=1350&fit=crop&q=80';
 }
 
+// ═══════════════ NOIR（淨黑色）黑白卡片版型 ｜ 2026-05-31 ═══════════════
+// 黑白交替頁：S1黑 S2淺 S3黑 S4白 S5淺灰 S6淺 S7黑。無金色，強調用灰階。
+// 共用同一份 content.json schema，故可當任何主題的版型。
+const NOIR = {
+  dark:  { bg:'#0E0E12', card:'rgba(255,255,255,.055)', cardO:'rgba(255,255,255,.10)', line:'#fff',
+           text:'#F6F4EF', sub:'rgba(255,255,255,.62)', em:'rgba(255,255,255,.50)', rule:'rgba(255,255,255,.14)',
+           numBg:'#F6F4EF', numFg:'#101013', bd:'rgba(255,255,255,.55)' },
+  paper: { bg:'#F2F0EB', card:'rgba(255,255,255,.78)', cardO:'#fff', line:'#1A1A1A',
+           text:'#1A1A1A', sub:'#777', em:'#888', rule:'rgba(26,26,26,.12)',
+           numBg:'#1A1A1A', numFg:'#fff', bd:'#222' },
+  white: { bg:'#FFFFFF', card:'#F4F2ED', cardO:'#F4F2ED', line:'#1A1A1A',
+           text:'#1A1A1A', sub:'#888', em:'#888', rule:'rgba(26,26,26,.12)',
+           numBg:'#1A1A1A', numFg:'#fff', bd:'#222' },
+  greyL: { bg:'#ECEAE5', card:'#fff', cardO:'#fff', line:'#1A1A1A',
+           text:'#1A1A1A', sub:'#777', em:'#888', rule:'rgba(26,26,26,.12)',
+           numBg:'#1A1A1A', numFg:'#fff', bd:'#222' },
+  grey2: { bg:'#EDECEA', card:'#fff', cardO:'#fff', line:'#1A1A1A',
+           text:'#1A1A1A', sub:'#888', em:'#888', rule:'rgba(26,26,26,.12)',
+           numBg:'#1A1A1A', numFg:'#fff', bd:'#222' },
+};
+// noir 專用圖層：cover=封面全版圖+漸層 / dark=深色內頁低透明 / light=淺色內頁低透明
+function _noirImg(d, ctx, pageIdx, mode) {
+  const img = pageIdx === 0 ? resolveCoverImage(d, ctx) : resolvePageImage(d, ctx, pageIdx);
+  const fb = 'https://picsum.photos/seed/' + encodeURIComponent('noir' + pageIdx + (ctx?.allText||'').slice(0,16)) + '/1080/1350';
+  const tag = op => `<img src="${img}" alt="" onerror="this.onerror=null;this.src='${fb}';" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${op};mix-blend-mode:${mode==='light'?'multiply':'luminosity'};z-index:0;pointer-events:none">`;
+  if (mode === 'cover') {
+    return tag('.30') +
+      `<div style="position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(14,14,18,.42),rgba(14,14,18,.18) 34%,rgba(14,14,18,.72) 70%,rgba(14,14,18,.95))"></div>`;
+  }
+  if (mode === 'dark') return tag('.12');
+  return tag('.055'); // light
+}
+function _noirFoot(c, pageNo, cat, brand) {
+  const isDark = (c.text !== '#1A1A1A');
+  const fp = { mute: isDark ? 'rgba(255,255,255,.60)' : 'rgba(26,26,26,.55)',
+               dim:  isDark ? 'rgba(255,255,255,.32)' : 'rgba(26,26,26,.35)' };
+  return footer(fp, pageNo, 7, cat, brand);
+}
+function _noirTitle(lines, accentIdx, c) {
+  const raw = (lines||[]).map(l=>(l||'').trim()).filter(Boolean);
+  let ai = accentIdx; if (raw.length===1) ai=0; else if (ai==null||ai<0||ai>=raw.length) ai=Math.floor(raw.length/2);
+  return raw.map((l,i)=>`<div style="color:${i===ai?c.em:c.text}">${esc(l)}</div>`).join('');
+}
+function NOIR_S1(d, ctx, brand) {
+  const c = NOIR.dark;
+  return `<div class="sl" data-noir style="background:${c.bg}">
+    ${_noirImg(d, ctx, 0, 'cover')}
+    <div class="nx nx-cover">
+      ${(d.meta||d.eyebrow)?`<div class="nx-ey" style="color:${c.sub}">${esc(d.meta||d.eyebrow)}</div>`:''}
+      <div class="nx-bar" style="background:${c.line}"></div>
+      <div class="nx-title">${_noirTitle(d.titleLines, d.accentLineIndex??d.goldLineIndex??1, c)}</div>
+      ${(d.bodyLines||[]).length?`<div class="nx-sub" style="color:${c.sub}">${(d.bodyLines||[]).map(l=>esc(l)).join('<br>')}</div>`:''}
+    </div>
+    ${_noirFoot(c,1,ctx.category,brand)}
+  </div>`;
+}
+function NOIR_S2(d, ctx, brand) {
+  const c = NOIR.paper;
+  const cards = (d.cards||[]).map(x=>`
+    <div class="nx-card" style="background:${c.card};border-left-color:${c.bd}">
+      <div class="nx-card-q" style="color:${c.text}">${esc(x.q)}</div>
+      ${x.a?`<div class="nx-card-a" style="color:${c.em}">${esc(x.a)}</div>`:''}
+    </div>`).join('');
+  return `<div class="sl" data-noir style="background:${c.bg}">
+    ${_noirImg(d, ctx, 1, 'light')}
+    <div class="nx">
+      <div class="nx-h" style="color:${c.text}">${nlToDiv(d.title)}</div>
+      ${d.subtitle?`<div class="nx-deck" style="color:${c.sub}">${esc(d.subtitle)}</div>`:''}
+      <div class="nx-cards">${cards}</div>
+    </div>
+    ${_noirFoot(c,2,ctx.category,brand)}
+  </div>`;
+}
+function NOIR_S3(d, ctx, brand) {
+  const c = NOIR.dark;
+  const rows = (d.pairs||[]).map(pr=>`
+    <div>
+      <div class="nx-x" style="background:${c.card};color:${c.sub}">✕ ${esc(pr.x)}</div>
+      <div class="nx-o" style="background:${c.cardO};color:${c.text};border:1px solid ${c.rule}">✓ ${esc(pr.o)}</div>
+    </div>`).join('');
+  return `<div class="sl" data-noir style="background:${c.bg}">
+    ${_noirImg(d, ctx, 2, 'dark')}
+    <div class="nx">
+      <div class="nx-h" style="color:${c.text}">${nlToDiv(d.title)}</div>
+      ${d.subtitle?`<div class="nx-deck" style="color:${c.sub}"><em>${esc(d.subtitle)}</em></div>`:''}
+      <div class="nx-pivots">${rows}</div>
+    </div>
+    ${_noirFoot(c,3,ctx.category,brand)}
+  </div>`;
+}
+function NOIR_S4(d, ctx, brand) {
+  const c = NOIR.white;
+  const clean = s=>String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/,'').trim();
+  const items = (d.items||[]).map((it,i)=>`
+    <div class="nx-step" style="background:${c.card};border-left-color:${c.bd}">
+      <div class="nx-num" style="background:${c.numBg};color:${c.numFg}">${pad(i+1)}</div>
+      <div><div class="nx-step-t" style="color:${c.text}">${esc(clean(it.t))}</div>
+      ${it.s?`<div class="nx-step-s" style="color:${c.em}">${esc(it.s)}</div>`:''}</div>
+    </div>`).join('');
+  return `<div class="sl" data-noir style="background:${c.bg}">
+    ${_noirImg(d, ctx, 3, 'light')}
+    <div class="nx">
+      <div class="nx-h" style="color:${c.text}">${nlToDiv(d.title)}</div>
+      ${(d.subtitleLines||[]).length?`<div class="nx-deck" style="color:${c.sub}">${(d.subtitleLines||[]).map(l=>esc(l)).join(' ')}</div>`:''}
+      <div class="nx-steps">${items}</div>
+    </div>
+    ${_noirFoot(c,4,ctx.category,brand)}
+  </div>`;
+}
+function NOIR_S5(d, ctx, brand) {
+  const c = NOIR.greyL;
+  const valid = (d.rows||[]).filter(r=>String(r.label||'').trim()&&String(r.val||'').trim());
+  const rows = valid.map((r,i,a)=>`
+    <div class="nx-drow" style="${i<a.length-1?`border-bottom:.5px solid ${c.rule}`:''}">
+      <span class="nx-dl" style="color:${c.sub}">${esc(r.label)}</span>
+      <span class="nx-dv" style="color:${c.text}">${esc(r.val)}</span>
+    </div>`).join('');
+  let bn=String(d.bigNumber||'').trim(), un=String(d.unit||'').trim();
+  if(un&&bn.endsWith(un))un='';
+  return `<div class="sl" data-noir style="background:${c.bg}">
+    ${_noirImg(d, ctx, 4, 'light')}
+    <div class="nx nx-data">
+      ${bn?`<div class="nx-big" style="color:${c.text}">${esc(bn)}</div>`:''}
+      <div class="nx-unit" style="color:${c.sub}">${esc(d.scenario||d.unit||un||'')}</div>
+      <div class="nx-divid" style="background:${c.line}"></div>
+      <div class="nx-table">${rows}</div>
+      ${d.quote?`<div class="nx-quote" style="color:${c.em}">${nlToDiv(d.quote)}</div>`:''}
+    </div>
+    ${_noirFoot(c,5,ctx.category,brand)}
+  </div>`;
+}
+function NOIR_S6(d, ctx, brand) {
+  const c = NOIR.grey2;
+  const clean = s=>String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/,'').trim();
+  const items = (d.items||[]).map((it,i)=>`
+    <div class="nx-step" style="background:${c.card};border-left-color:${c.bd}">
+      <div class="nx-num" style="background:${c.numBg};color:${c.numFg}">${pad(i+1)}</div>
+      <div><div class="nx-step-t" style="color:${c.text}">${esc(clean(it.t))}</div>
+      ${it.s?`<div class="nx-step-s" style="color:${c.em}">${esc(it.s)}</div>`:''}</div>
+    </div>`).join('');
+  return `<div class="sl" data-noir style="background:${c.bg}">
+    ${_noirImg(d, ctx, 5, 'light')}
+    <div class="nx">
+      <div class="nx-h" style="color:${c.text}">${nlToDiv(d.title)}</div>
+      <div class="nx-steps" style="margin-top:6px">${items}</div>
+    </div>
+    ${_noirFoot(c,6,ctx.category,brand)}
+  </div>`;
+}
+function NOIR_S7(d, kw, tool, ctx, brand) {
+  const c = NOIR.dark;
+  let safeKw=String(kw||'').trim(); if(!safeKw||safeKw.length>8)safeKw='清單';
+  let ctaSub=String(d.ctaSub||'').trim();
+  if(!ctaSub||/底下留言|留言這|留言「|↓|↑|傳給你|私訊/.test(ctaSub)||ctaSub.length<5||ctaSub.length>40)ctaSub='';
+  return `<div class="sl" data-noir style="background:${c.bg}">
+    ${_noirImg(d, ctx, 6, 'dark')}
+    <div class="nx nx-end">
+      <div class="nx-ey" style="color:${c.sub}">致正在考慮的你</div>
+      <div class="nx-bar" style="background:${c.line};margin:18px auto 26px"></div>
+      <div class="nx-end-main" style="color:${c.text}">${ctaSub?esc(ctaSub):'想要更完整的整理嗎'}</div>
+      <div class="nx-end-sub" style="color:${c.sub}">留言「<span style="color:${c.text};font-weight:700">${esc(safeKw)}</span>」</div>
+      <div class="nx-res" style="color:${c.sub}">我把整理好的資料傳給你</div>
+      <div class="nx-items">
+        <div class="nx-item" style="color:${c.text}">→ ${esc(tool||'實用整理懶人包')}</div>
+        ${d.toolSub?`<div class="nx-item" style="color:${c.sub}">→ ${esc(d.toolSub)}</div>`:''}
+      </div>
+      <div class="nx-pill" style="background:${c.card};color:${c.text};border:1px solid ${c.rule}">追蹤 ${esc(brand.handle)}</div>
+    </div>
+    ${_noirFoot(c,7,ctx.category,brand)}
+  </div>`;
+}
+
 function S1(d, theme, ctx, brand) {
+  if (theme === 'noir') return NOIR_S1(d, ctx, brand);
   const p = palette(theme), dk = p.dark;
   const goldAccent = dk ? '#F0CC74' : '#8B6A1A';
   const goldLine = dk ? '#E8C46A' : '#9C7A20';
@@ -1271,6 +1444,7 @@ function S1(d, theme, ctx, brand) {
 }
 
 function S2(d, theme, ctx, brand) {
+  if (theme === 'noir') return NOIR_S2(d, ctx, brand);
   const p = palette(theme);
   const cards = (d.cards||[]).map((c,i,a) => `
     <div class="excerpt">
@@ -1298,6 +1472,7 @@ function S2(d, theme, ctx, brand) {
 }
 
 function S3(d, theme, ctx, brand) {
+  if (theme === 'noir') return NOIR_S3(d, ctx, brand);
   const p = palette(theme);
   const rows = (d.pairs||[]).map((pair,i,a) => `
     <div class="pivot-row">
@@ -1329,6 +1504,7 @@ function S3(d, theme, ctx, brand) {
 }
 
 function S4(d, theme, ctx, brand) {
+  if (theme === 'noir') return NOIR_S4(d, ctx, brand);
   const p = palette(theme);
   // 剝掉 t 開頭可能的 01/02/03 / 1. / 一、等前綴，避免跟 protocol-num 重複
   const cleanT = s => String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/, '').trim();
@@ -1360,6 +1536,7 @@ function S4(d, theme, ctx, brand) {
 }
 
 function S5(d, theme, ctx, brand) {
+  if (theme === 'noir') return NOIR_S5(d, ctx, brand);
   const p = palette(theme);
   const rowStyle = t => t==='strike' ? `color:${p.dim};text-decoration:line-through;text-decoration-color:${p.dim}`
                       : t==='gold'   ? `color:${p.accent};font-weight:600`
@@ -1409,6 +1586,7 @@ function S5(d, theme, ctx, brand) {
 }
 
 function S6(d, theme, ctx, brand) {
+  if (theme === 'noir') return NOIR_S6(d, ctx, brand);
   const p = palette(theme);
   const cleanT6 = s => String(s||'').replace(/^(?:0?\d+|[一二三四五六七八九十]+)[\.\、\s．：:]+\s*/, '').trim();
   const items = (d.items||[]).map((it,i,a) => `
@@ -1435,6 +1613,7 @@ function S6(d, theme, ctx, brand) {
 }
 
 function S7(d, kw, tool, theme, ctx, brand) {
+  if (theme === 'noir') return NOIR_S7(d, kw, tool, ctx, brand);
   const p = palette(theme);
   // v3.33 ・ 強制清理 ctaSub — 跟 headline 內容重複就用預設
   let ctaSub = String(d.ctaSub || '').trim();
@@ -1603,6 +1782,45 @@ const SLIDE_CSS = `
   [contenteditable]:hover { background:rgba(232,196,106,0.08); border-radius:2px; }
   [contenteditable]:focus { outline:2px solid rgba(166,132,85,.7); outline-offset:4px; border-radius:2px; background:rgba(232,196,106,0.06); }
   .exporting .tabs, .exporting .panel, .exporting .arrow, .exporting .dots { visibility:hidden; }
+  /* ───── NOIR（淨黑色）・ 黑白卡片版型 v1 ｜ 2026-05-31 從車險輪播設計移植 ｜ 僅作用於 [data-noir]，不影響 cream/ink/paper ───── */
+  .sl[data-noir] { font-family:'Noto Serif TC',serif; }
+  .sl[data-noir] .grain { display:none; }
+  .sl[data-noir] .nx { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:64px 58px 116px; z-index:3; }
+  .sl[data-noir] .nx-ey { font-family:'JetBrains Mono',monospace; font-size:clamp(9px,2.3cqi,11px); letter-spacing:.32em; text-transform:uppercase; }
+  .sl[data-noir] .nx-bar { width:46px; height:2px; margin:16px 0 22px; }
+  .sl[data-noir] .nx-cover { justify-content:flex-end; text-align:left; }
+  .sl[data-noir] .nx-title { font-weight:900; font-size:clamp(22px,7.4cqi,40px); line-height:1.24; letter-spacing:.03em; word-break:keep-all; }
+  .sl[data-noir] .nx-sub { font-size:clamp(12px,2.9cqi,15px); line-height:1.72; letter-spacing:.04em; margin-top:22px; }
+  .sl[data-noir] .nx-h { font-weight:900; font-size:clamp(19px,6.2cqi,30px); line-height:1.3; letter-spacing:.03em; margin-bottom:8px; word-break:keep-all; }
+  .sl[data-noir] .nx-deck { font-size:clamp(12px,2.8cqi,14px); letter-spacing:.04em; margin-bottom:22px; line-height:1.6; }
+  .sl[data-noir] .nx-cards { display:flex; flex-direction:column; gap:14px; width:100%; }
+  .sl[data-noir] .nx-card { border-left:3px solid; border-radius:10px; padding:18px 22px; }
+  .sl[data-noir] .nx-card-q { font-size:clamp(13px,3.2cqi,16px); font-weight:700; line-height:1.45; letter-spacing:.02em; }
+  .sl[data-noir] .nx-card-a { font-size:clamp(11px,2.6cqi,13px); line-height:1.6; letter-spacing:.02em; margin-top:6px; }
+  .sl[data-noir] .nx-pivots { display:flex; flex-direction:column; gap:16px; width:100%; }
+  .sl[data-noir] .nx-x { padding:15px 20px; border-radius:8px; font-size:clamp(12px,3cqi,15px); letter-spacing:.02em; line-height:1.42; text-decoration:line-through; margin-bottom:9px; }
+  .sl[data-noir] .nx-o { padding:15px 20px; border-radius:8px; font-size:clamp(12px,3cqi,15px); letter-spacing:.02em; line-height:1.42; }
+  .sl[data-noir] .nx-steps { display:flex; flex-direction:column; gap:14px; width:100%; }
+  .sl[data-noir] .nx-step { display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:flex-start; border-left:3px solid; border-radius:10px; padding:18px 20px; }
+  .sl[data-noir] .nx-num { width:clamp(30px,8cqi,42px); height:clamp(30px,8cqi,42px); display:flex; align-items:center; justify-content:center; border-radius:7px; font-family:'JetBrains Mono',monospace; font-size:clamp(13px,3.4cqi,17px); font-weight:600; flex-shrink:0; }
+  .sl[data-noir] .nx-step-t { font-size:clamp(12.5px,3.1cqi,15px); font-weight:700; line-height:1.4; letter-spacing:.02em; }
+  .sl[data-noir] .nx-step-s { font-size:clamp(10.5px,2.5cqi,12.5px); line-height:1.55; margin-top:5px; }
+  .sl[data-noir] .nx-data { justify-content:center; align-items:center; text-align:center; }
+  .sl[data-noir] .nx-big { font-family:'Playfair Display','Noto Serif TC',serif; font-weight:900; font-size:clamp(58px,22cqi,150px); line-height:.9; letter-spacing:.01em; white-space:nowrap; }
+  .sl[data-noir] .nx-unit { font-size:clamp(12px,2.9cqi,15px); letter-spacing:.12em; margin-top:14px; }
+  .sl[data-noir] .nx-divid { width:60px; height:2px; margin:24px 0; opacity:.3; }
+  .sl[data-noir] .nx-table { width:100%; }
+  .sl[data-noir] .nx-drow { display:flex; justify-content:space-between; align-items:baseline; padding:11px 0; }
+  .sl[data-noir] .nx-dl { font-size:clamp(11px,2.7cqi,13px); letter-spacing:.04em; }
+  .sl[data-noir] .nx-dv { font-family:'JetBrains Mono',monospace; font-size:clamp(12px,3cqi,15px); letter-spacing:.03em; }
+  .sl[data-noir] .nx-quote { font-family:'Playfair Display','Noto Serif TC',serif; font-style:italic; font-size:clamp(12px,2.9cqi,15px); margin-top:22px; line-height:1.6; }
+  .sl[data-noir] .nx-end { justify-content:center; align-items:center; text-align:center; }
+  .sl[data-noir] .nx-end-main { font-weight:900; font-size:clamp(20px,6.4cqi,36px); line-height:1.26; letter-spacing:.03em; margin-bottom:16px; }
+  .sl[data-noir] .nx-end-sub { font-size:clamp(12px,2.9cqi,15px); line-height:1.8; margin-bottom:24px; letter-spacing:.04em; }
+  .sl[data-noir] .nx-res { font-size:clamp(11px,2.6cqi,13px); margin-bottom:12px; letter-spacing:.02em; }
+  .sl[data-noir] .nx-items { display:flex; flex-direction:column; gap:7px; margin-bottom:24px; align-items:center; }
+  .sl[data-noir] .nx-item { font-size:clamp(11px,2.6cqi,13px); letter-spacing:.02em; }
+  .sl[data-noir] .nx-pill { display:inline-block; border-radius:50px; padding:13px 36px; font-size:clamp(12px,2.9cqi,15px); font-weight:600; letter-spacing:.08em; }
 `;
 
 function buildCarouselHTML(content, keyword, toolName, theme = 'cream', brand = null) {
@@ -1658,7 +1876,7 @@ ${content.hashtags || _topicHashtags(allText)}`;
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>韋總裁輪播</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,900;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>
 <style>${SLIDE_CSS}</style>
 </head><body>
