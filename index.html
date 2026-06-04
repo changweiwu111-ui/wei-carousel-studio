@@ -582,7 +582,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.36 EDITORIAL</div>
+          <div class="brand-sub">STUDIO ・ v3.37 EDITORIAL</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1003,6 +1003,8 @@ function smartBreak(s) {
 }
 const nlToDiv = s => smartBreak(s).split('\n').map(l => `<div>${esc(l)}</div>`).join('');
 const pad = n => String(n).padStart(2,'0');
+// v3.37 ・ 列表密度：4 個以內正常，5 個 dense，6+ 個 xdense（配合 CSS 自動緊湊，不超出欄位）
+const denseCls = n => n >= 6 ? 'xdense' : (n === 5 ? 'dense' : '');
 
 function palette(theme) {
   if (theme === 'ink') return {bg:TOKENS.ink,paper:TOKENS.inkDeep,text:TOKENS.cream,mute:'rgba(245,241,232,0.62)',dim:'rgba(245,241,232,0.32)',rule:'rgba(245,241,232,0.16)',subText:'rgba(245,241,232,0.92)',accent:'#E8C46A',accentSoft:'rgba(232,196,106,0.18)',dark:true};
@@ -1314,7 +1316,7 @@ function NOIR_S4(d, ctx, brand) {
     <div class="nx">
       <div class="nx-h" style="color:${c.text}">${nlToDiv(d.title)}</div>
       ${(d.subtitleLines||[]).length?`<div class="nx-deck" style="color:${c.sub}">${(d.subtitleLines||[]).map(l=>esc(l)).join(' ')}</div>`:''}
-      <div class="nx-steps">${items}</div>
+      <div class="nx-steps ${denseCls((d.items||[]).length)}">${items}</div>
     </div>
     ${_noirFoot(c,4,ctx.category,brand)}
   </div>`;
@@ -1335,7 +1337,7 @@ function NOIR_S5(d, ctx, brand) {
       ${bn?`<div class="nx-big" style="color:${c.text}">${esc(bn)}</div>`:''}
       <div class="nx-unit" style="color:${c.sub}">${esc(d.scenario||d.unit||un||'')}</div>
       <div class="nx-divid" style="background:${c.line}"></div>
-      <div class="nx-table">${rows}</div>
+      <div class="nx-table ${denseCls(valid.length)}">${rows}</div>
       ${d.quote?`<div class="nx-quote" style="color:${c.em}">${nlToDiv(d.quote)}</div>`:''}
     </div>
     ${_noirFoot(c,5,ctx.category,brand)}
@@ -1354,7 +1356,7 @@ function NOIR_S6(d, ctx, brand) {
     ${_noirImg(d, ctx, 5, 'light')}
     <div class="nx">
       <div class="nx-h" style="color:${c.text}">${nlToDiv(d.title)}</div>
-      <div class="nx-steps" style="margin-top:6px">${items}</div>
+      <div class="nx-steps ${denseCls((d.items||[]).length)}" style="margin-top:6px">${items}</div>
     </div>
     ${_noirFoot(c,6,ctx.category,brand)}
   </div>`;
@@ -1529,7 +1531,7 @@ function S4(d, theme, ctx, brand) {
         ${(d.subtitleLines||[]).map(l => `<div>${esc(l)}</div>`).join('')}
       </div>
       <div class="spread-rule" style="background:${p.rule}"></div>
-      <div class="protocols">${items}</div>
+      <div class="protocols ${denseCls((d.items||[]).length)}">${items}</div>
     </div>
     ${footer(p,4,7,ctx.category,brand)}
   </div>`;
@@ -1577,7 +1579,7 @@ function S5(d, theme, ctx, brand) {
       })()}
       <div class="data-source" style="color:${p.subText}">${esc(d.source||'')}</div>
       <div class="data-rule" style="background:${p.rule}"></div>
-      <div class="data-table">${rows}</div>
+      <div class="data-table ${denseCls(validRows.length)}">${rows}</div>
       <div class="data-rule" style="background:${p.rule}"></div>
       <div class="data-quote serif" style="color:${p.mute}"><em>${nlToDiv(d.quote||'')}</em></div>
     </div>
@@ -1606,7 +1608,7 @@ function S6(d, theme, ctx, brand) {
     <div class="spread spread-left">
       <div class="spread-title serif" style="color:${p.text}">${nlToDiv(d.title)}</div>
       <div class="spread-rule" style="background:${p.rule}"></div>
-      <div class="lists">${items}</div>
+      <div class="lists ${denseCls((d.items||[]).length)}">${items}</div>
     </div>
     ${footer(p,6,7,ctx.category,brand)}
   </div>`;
@@ -1721,6 +1723,29 @@ const SLIDE_CSS = `
   .protocol-sub { font-size:clamp(10.5px, 2.5cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .protocol-note { font-size:8px; align-self:center; }
   .protocol-rule { width:100%; height:.5px; }
+  /* v3.37 ・ 5/6+ 項自動緊湊：項目多時整組縮小，保持精緻不溢出 */
+  .protocols.dense .protocol-step { padding:9px 0; gap:12px; grid-template-columns:32px 1fr auto; }
+  .protocols.xdense .protocol-step { padding:7px 0; gap:10px; grid-template-columns:28px 1fr auto; }
+  .protocols.dense .protocol-num { font-size:clamp(15px, 3.4cqi, 19px); }
+  .protocols.xdense .protocol-num { font-size:clamp(14px, 3cqi, 17px); }
+  .protocols.dense .protocol-title { font-size:clamp(12px, 2.8cqi, 14px); line-height:1.35; }
+  .protocols.xdense .protocol-title { font-size:clamp(11.5px, 2.6cqi, 13px); line-height:1.3; }
+  .protocols.dense .protocol-sub { font-size:clamp(10px, 2.3cqi, 11.5px); line-height:1.5; }
+  .protocols.xdense .protocol-sub { font-size:clamp(9.5px, 2.2cqi, 11px); line-height:1.45; }
+  .lists.dense .list-row { padding:9px 0; gap:12px; grid-template-columns:32px 1fr; }
+  .lists.xdense .list-row { padding:7px 0; gap:10px; grid-template-columns:28px 1fr; }
+  .lists.dense .list-num { font-size:clamp(15px, 3.4cqi, 19px); }
+  .lists.xdense .list-num { font-size:clamp(14px, 3cqi, 17px); }
+  .lists.dense .list-title { font-size:clamp(12px, 2.8cqi, 14px); line-height:1.35; }
+  .lists.xdense .list-title { font-size:clamp(11.5px, 2.6cqi, 13px); line-height:1.3; }
+  .lists.dense .list-sub { font-size:clamp(10px, 2.3cqi, 11.5px); line-height:1.5; }
+  .lists.xdense .list-sub { font-size:clamp(9.5px, 2.2cqi, 11px); line-height:1.45; }
+  .data-table.dense .data-row { padding:7px 0; }
+  .data-table.xdense .data-row { padding:5.5px 0; }
+  .data-table.dense .data-label { font-size:11.5px; }
+  .data-table.xdense .data-label { font-size:11px; }
+  .data-table.dense .data-val { font-size:13px; }
+  .data-table.xdense .data-val { font-size:12px; }
   .data-scenario { font-size:15px; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:8px; font-weight:500; }
   .data-tag { font-size:8px; margin-bottom:12px; letter-spacing:.22em; }
   .data-hero { display:flex; align-items:baseline; gap:8px; margin-bottom:18px; flex-wrap:nowrap; }
@@ -1809,7 +1834,24 @@ const SLIDE_CSS = `
   .sl[data-noir] .nx-big { font-family:'Playfair Display','Noto Serif TC',serif; font-weight:900; font-size:clamp(58px,22cqi,150px); line-height:.9; letter-spacing:.01em; white-space:nowrap; }
   .sl[data-noir] .nx-unit { font-size:clamp(12px,2.9cqi,15px); letter-spacing:.12em; margin-top:14px; }
   .sl[data-noir] .nx-divid { width:60px; height:2px; margin:24px 0; opacity:.3; }
+  /* v3.37 ・ noir 版 5/6+ 項自動緊湊 */
+  .sl[data-noir] .nx-steps.dense { gap:10px; }
+  .sl[data-noir] .nx-steps.xdense { gap:8px; }
+  .sl[data-noir] .nx-steps.dense .nx-step { padding:13px 16px; gap:13px; }
+  .sl[data-noir] .nx-steps.xdense .nx-step { padding:10px 14px; gap:11px; }
+  .sl[data-noir] .nx-steps.dense .nx-num { width:clamp(26px,6.5cqi,34px); height:clamp(26px,6.5cqi,34px); font-size:clamp(12px,3cqi,15px); }
+  .sl[data-noir] .nx-steps.xdense .nx-num { width:clamp(23px,5.8cqi,30px); height:clamp(23px,5.8cqi,30px); font-size:clamp(11px,2.7cqi,13.5px); }
+  .sl[data-noir] .nx-steps.dense .nx-step-t { font-size:clamp(12px,2.9cqi,14px); line-height:1.35; }
+  .sl[data-noir] .nx-steps.xdense .nx-step-t { font-size:clamp(11.5px,2.7cqi,13px); line-height:1.3; }
+  .sl[data-noir] .nx-steps.dense .nx-step-s { font-size:clamp(10px,2.3cqi,11.5px); line-height:1.45; margin-top:4px; }
+  .sl[data-noir] .nx-steps.xdense .nx-step-s { font-size:clamp(9.5px,2.2cqi,11px); line-height:1.4; margin-top:3px; }
   .sl[data-noir] .nx-table { width:100%; }
+  .sl[data-noir] .nx-table.dense .nx-drow { padding:8px 0; }
+  .sl[data-noir] .nx-table.xdense .nx-drow { padding:6px 0; }
+  .sl[data-noir] .nx-table.dense .nx-dl { font-size:clamp(10.5px,2.5cqi,12px); }
+  .sl[data-noir] .nx-table.xdense .nx-dl { font-size:clamp(10px,2.4cqi,11.5px); }
+  .sl[data-noir] .nx-table.dense .nx-dv { font-size:clamp(11.5px,2.8cqi,14px); }
+  .sl[data-noir] .nx-table.xdense .nx-dv { font-size:clamp(11px,2.6cqi,13px); }
   .sl[data-noir] .nx-drow { display:flex; justify-content:space-between; align-items:baseline; padding:11px 0; }
   .sl[data-noir] .nx-dl { font-size:clamp(11px,2.7cqi,13px); letter-spacing:.04em; }
   .sl[data-noir] .nx-dv { font-family:'JetBrains Mono',monospace; font-size:clamp(12px,3cqi,15px); letter-spacing:.03em; }
@@ -2025,6 +2067,32 @@ function autoFit(){_safe(()=>{
       }
     }
   });
+  // v3.37 ・ 階段 3：列表型內容（S4/S5/S6 + noir）5-6 項仍溢出 → 逐步縮字級＋行距＋間距，直到放進欄位
+  _safe(()=>{
+    const wrap=active.querySelector('.spread, .nx');
+    const list=active.querySelector('.protocols, .lists, .data-table, .nx-steps, .nx-table');
+    if(!wrap||!list)return;
+    const slH=active.clientHeight;
+    if(slH<=0)return;
+    const rows=list.querySelectorAll('.protocol-step,.list-row,.data-row,.nx-step,.nx-drow');
+    const texts=list.querySelectorAll('.protocol-num,.protocol-title,.protocol-sub,.list-num,.list-title,.list-sub,.data-label,.data-val,.nx-step-t,.nx-step-s,.nx-dl,.nx-dv');
+    let guard=0;
+    while(guard<18 && wrap.scrollHeight>slH+2){
+      texts.forEach(el=>{
+        const s=parseFloat(getComputedStyle(el).fontSize);
+        if(s>9) el.style.fontSize=(s*0.95)+'px';
+      });
+      rows.forEach(r=>{
+        const cs=getComputedStyle(r);
+        const pt=parseFloat(cs.paddingTop)||0, pb=parseFloat(cs.paddingBottom)||0;
+        if(pt>3) r.style.paddingTop=(pt*0.85)+'px';
+        if(pb>3) r.style.paddingBottom=(pb*0.85)+'px';
+      });
+      const g=parseFloat(getComputedStyle(list).rowGap);
+      if(!isNaN(g)&&g>5) list.style.rowGap=(g*0.85)+'px';
+      guard++;
+    }
+  },'autoFitList');
 },'autoFit');}
 
 function refreshCaption(){_safe(()=>{
@@ -2054,6 +2122,22 @@ function tab(i){_safe(()=>{
 
 function copyPanel(){_safe(()=>{const b=document.querySelectorAll('.panel-body')[activeTab];navigator.clipboard.writeText(b.innerText).then(()=>{const btn=event.target;const t=btn.textContent;btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent=t,1500);});},'copy');}
 
+// v3.37 ・ 匯出修正：allowTaint:false（allowTaint:true + 跨域圖 = canvas 污染，Safari toDataURL 直接丟
+// "The operation is insecure"）。useCORS:true 會改用 CORS 載圖（Unsplash 支援），canvas 保持乾淨。
+// 萬一圖源不支援 CORS 導致仍被污染 → 自動退一步忽略外部圖重匯，至少版面文字一定出得來。
+async function _snap(sl){
+  const opts = {scale:2.5, useCORS:true, allowTaint:false, backgroundColor:null, logging:false};
+  let c = await html2canvas(sl, opts);
+  try { return c.toDataURL('image/png'); }
+  catch(e) {
+    console.warn('[export] canvas tainted → retry without external images', e);
+    c = await html2canvas(sl, Object.assign({}, opts, {
+      ignoreElements: el => el.tagName==='IMG' && /^https?:/.test(el.src||'') && !(el.src||'').startsWith(location.origin)
+    }));
+    return c.toDataURL('image/png');
+  }
+}
+
 window.exportCurrent = async function(){
   try {
     const sls = document.querySelectorAll('.sl');
@@ -2061,11 +2145,11 @@ window.exportCurrent = async function(){
     if (!sl) { console.error('[export] no slide'); return; }
     if (typeof html2canvas === 'undefined') { console.error('[export] html2canvas not loaded'); alert('PNG 匯出模組尚未載入，請等 2 秒再試'); return; }
     document.body.classList.add('exporting');
-    const c = await html2canvas(sl, {scale:2.5, useCORS:true, allowTaint:true, backgroundColor:null, logging:false});
+    const url = await _snap(sl);
     document.body.classList.remove('exporting');
     const a = document.createElement('a');
     a.download = 'wei_slide_'+String(cur+1).padStart(2,'0')+'.png';
-    a.href = c.toDataURL('image/png');
+    a.href = url;
     document.body.appendChild(a); a.click(); a.remove();
     console.log('[export] done', a.download);
   } catch(e) {
@@ -2086,11 +2170,11 @@ window.exportAll = async function(){
       goto(i);
       await new Promise(r=>setTimeout(r,500));
       document.body.classList.add('exporting');
-      const c = await html2canvas(sls[i], {scale:2.5, useCORS:true, allowTaint:true, backgroundColor:null, logging:false});
+      const url = await _snap(sls[i]);
       document.body.classList.remove('exporting');
       const a = document.createElement('a');
       a.download = 'wei_slide_'+String(i+1).padStart(2,'0')+'.png';
-      a.href = c.toDataURL('image/png');
+      a.href = url;
       document.body.appendChild(a); a.click(); a.remove();
       await new Promise(r=>setTimeout(r,300));
     }
