@@ -531,6 +531,76 @@
     0%, 100% { opacity: 1; }
     50% { opacity: .55; }
   }
+
+  /* ═══ v4.0 PLATFORM ・ 登入畫面 + 雲端面板 ═══ */
+  .login-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(10,11,16,.92);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-overlay.is-hidden { display: none; }
+  .login-card {
+    width: min(380px, 90vw);
+    background: var(--panel, #14161E);
+    border: .5px solid rgba(245,241,232,.14);
+    border-radius: 8px;
+    padding: 34px 30px 26px;
+  }
+  .login-mark {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 26px; font-weight: 900; color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .login-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .3em; color: var(--mute);
+    text-transform: uppercase; margin-bottom: 24px;
+  }
+  .login-card .input { margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+  .login-err {
+    color: #F4B7A6; font-size: 12px; min-height: 18px; margin: 4px 0 8px;
+  }
+  .login-links {
+    display: flex; justify-content: space-between; margin-top: 16px;
+    font-size: 11px;
+  }
+  .login-links a { color: var(--mute); text-decoration: none; cursor: pointer; }
+  .login-links a:hover { color: var(--accent); }
+  .cloud-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 8px 10px;
+    border: .5px solid rgba(245,241,232,.10); border-radius: 4px;
+    margin-top: 8px;
+  }
+  .cloud-row-main { flex: 1; min-width: 0; cursor: pointer; }
+  .cloud-row-title {
+    font-size: 12.5px; color: var(--text); font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cloud-row-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; letter-spacing: .06em; color: var(--mute); margin-top: 2px;
+  }
+  .cloud-row:hover { border-color: rgba(228,196,106,.4); }
+  .cloud-row.is-current { border-color: var(--accent); }
+  .cloud-mini-btn {
+    background: none; border: .5px solid rgba(245,241,232,.18); border-radius: 3px;
+    color: var(--mute); font-size: 10.5px; padding: 4px 8px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .cloud-mini-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .cloud-user {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: .08em; color: var(--mute);
+  }
+  .cloud-user b { color: var(--accent); font-weight: 600; }
+  .cloud-empty { font-size: 11.5px; color: var(--mute); padding: 8px 2px; }
+  .quota-line {
+    font-family: 'JetBrains Mono', monospace; font-size: 9.5px;
+    letter-spacing: .06em; color: var(--mute); margin-top: 6px;
+  }
 </style>
 </head>
 <body>
@@ -582,7 +652,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">STUDIO ・ v3.37 EDITORIAL</div>
+          <div class="brand-sub">PLATFORM ・ v4.0</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -756,6 +826,45 @@
       </div>
     </div>
 
+    <!-- v4.0 PLATFORM ・ 雲端作品庫 -->
+    <div class="section" id="cloud-section">
+      <div class="section-label">
+        <span>☁ 雲端 ・ CLOUD</span>
+      </div>
+      <div id="cloud-logged-out">
+        <button class="btn btn-ghost" onclick="showLogin()" style="width:100%">登入團隊帳號</button>
+        <div class="cloud-empty">登入後：AI 免設定、作品存雲端、換裝置接著改</div>
+      </div>
+      <div id="cloud-logged-in" class="is-hidden">
+        <div class="cloud-user">
+          <span>👤 <b id="cloud-username"></b></span>
+          <button class="cloud-mini-btn" onclick="platformLogout()">登出</button>
+        </div>
+        <div class="quota-line" id="cloud-quota"></div>
+
+        <div style="display:flex;gap:6px;margin-top:12px">
+          <button class="src-btn" onclick="saveWorkToCloud()" style="flex:1">💾 儲存作品</button>
+          <button class="src-btn" onclick="saveWorkToCloud(true)" style="flex:1">另存新作品</button>
+        </div>
+
+        <div class="section-label" style="margin-top:16px"><span>我的作品</span>
+          <button class="cloud-mini-btn" onclick="refreshWorks()" title="重新整理">↻</button>
+        </div>
+        <div id="works-list"><div class="cloud-empty">載入中…</div></div>
+
+        <div class="section-label" style="margin-top:16px"><span>模板庫</span></div>
+        <div id="templates-list"><div class="cloud-empty">載入中…</div></div>
+        <button class="src-btn is-hidden" id="publish-template-btn" onclick="publishTemplate()" style="width:100%;margin-top:8px">📐 發佈目前內容為模板</button>
+
+        <div id="admin-section" class="is-hidden">
+          <div class="section-label" style="margin-top:16px"><span>管理 ・ 團隊總覽</span>
+            <button class="cloud-mini-btn" onclick="refreshAdmin()" title="重新整理">↻</button>
+          </div>
+          <div id="admin-summary"><div class="cloud-empty">載入中…</div></div>
+        </div>
+      </div>
+    </div>
+
     <div class="actions">
       <button class="btn btn-primary" onclick="generate()">生成輪播 →</button>
 
@@ -791,6 +900,22 @@
       <div class="placeholder-text">PRESS  「生成輪播 →」  TO BEGIN</div>
     </div>
   </main>
+</div>
+
+<!-- v4.0 PLATFORM ・ 登入畫面 -->
+<div class="login-overlay is-hidden" id="login-overlay">
+  <div class="login-card">
+    <div class="login-mark">輪播平台</div>
+    <div class="login-sub">WEI TEAM ・ CAROUSEL PLATFORM</div>
+    <input class="input" type="email" id="login-email" placeholder="Email" autocomplete="username">
+    <input class="input" type="password" id="login-password" placeholder="密碼" autocomplete="current-password">
+    <div class="login-err" id="login-err"></div>
+    <button class="btn btn-primary" id="login-btn" onclick="platformLogin()" style="width:100%">登入</button>
+    <div class="login-links">
+      <a href="https://wei-crm.pages.dev/forgot-password" target="_blank">忘記密碼？</a>
+      <a onclick="skipLogin()">先離線使用 →</a>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -2860,6 +2985,9 @@ function generate() {
   $preview.srcdoc = html;
   $placeholder.classList.add('is-hidden');
 
+  // v4.0 ・ 已載入雲端作品時，重新生成後自動回存
+  if (typeof queueAutoSave === 'function') queueAutoSave();
+
   // 內容檢查 — 跳警示
   const issues = validateContent(content);
   if (issues.length) {
@@ -3029,8 +3157,17 @@ function updateAIKeyStatus() {
   const inactive = Object.entries(keys).filter(([n,v]) => !v).map(([n,v]) => n + ' ✗');
   const provider = localStorage.getItem('wei_ai_provider') || 'auto';
   const origin = location.origin === 'null' ? 'file://（本地）' : location.origin.replace('https://','').replace('http://','');
+  // v4.0 ・ 已登入平台 = AI 免設定，狀態列直接顯示
+  const hasPlatform = typeof platformToken !== 'undefined' && !!platformToken;
+  if (hasPlatform) {
+    el.innerHTML = '<span style="color:#A6E0B9">☁ 平台 AI ✓ — 免設定，登入即用</span>' +
+      (active.length ? '<br><span style="opacity:.5">個人備援 KEY: ' + active.join(' ・ ') + '</span>' : '') +
+      '<br><span style="opacity:.5">ORIGIN: ' + origin + '</span>';
+    el.style.borderColor = 'rgba(166,224,185,.32)';
+    return;
+  }
   if (active.length === 0) {
-    el.innerHTML = '<span style="color:#F4B7A6">⚠ 沒有任何 AI KEY ・ 走啟發式（內容會比較陽春）</span><br><span style="opacity:.6">ORIGIN: ' + origin + '</span><br><span style="opacity:.6">→ 點齒輪 ⚙ 設定免費 Groq key</span>';
+    el.innerHTML = '<span style="color:#F4B7A6">⚠ 未登入且沒有 AI KEY ・ 走啟發式（內容會比較陽春）</span><br><span style="opacity:.6">→ 登入團隊帳號即可免設定使用 AI</span><br><span style="opacity:.6">ORIGIN: ' + origin + '</span>';
     el.style.borderColor = 'rgba(244,183,166,.32)';
   } else {
     el.innerHTML = '<span style="color:#A6E0B9">AI KEYS: ' + active.join(' ・ ') + '</span><br><span style="opacity:.5">未設: ' + inactive.join(' ・ ') + ' ・ MODE: ' + provider.toUpperCase() + '</span><br><span style="opacity:.5">ORIGIN: ' + origin + '</span>';
@@ -3650,8 +3787,27 @@ async function smartGenerate() {
       }
     };
 
+    // v4.0 ・ 平台 AI（登入即用，免設 key）— 永遠第一優先
+    const tryPlatform = async () => {
+      if (typeof platformToken === 'undefined' || !platformToken) { aiErrors.push('平台: 未登入'); return false; }
+      try {
+        btn.textContent = '✦ 平台 AI 寫作中...';
+        setStatus('平台 AI 生成中（免設定，10-20 秒）');
+        aiText = await platformAIGenerate(text);
+        usedProvider = '平台 AI';
+        console.log('[AI] 平台成功，回應長度:', (aiText||'').length);
+        return true;
+      } catch (e) {
+        const errMsg = e.message || String(e);
+        aiErrors.push('平台: ' + errMsg.slice(0, 150));
+        console.error('[AI] 平台失敗：', errMsg);
+        setStatus('平台 AI 失敗：' + errMsg.slice(0,80) + ' — 改用備援', true);
+        return false;
+      }
+    };
+
     if (provider === 'auto') {
-      await tryGroq() || await tryMistral() || await tryGemini() || await tryAnthropic();
+      await tryPlatform() || await tryGroq() || await tryMistral() || await tryGemini() || await tryAnthropic();
     } else if (provider === 'groq') {
       await tryGroq();
     } else if (provider === 'mistral') {
@@ -3898,6 +4054,346 @@ loadBrand();
 loadSample();
 loadTopicDraft();
 maybeShowOnboard();
+
+// ═════════════════════════════════════════════════════════════════════════════
+// v4.0 PLATFORM ・ 雲端層（wei-crm 帳號 + 平台 AI + 作品庫 + 模板庫 + 管理）
+// ═════════════════════════════════════════════════════════════════════════════
+const PLATFORM_API = 'https://wei-crm-api.wei-crm.workers.dev';
+// 用 var（不用 let）：updateAIKeyStatus 在腳本前段開機時就會跑 typeof 檢查，let 會踩 TDZ
+var platformToken = localStorage.getItem('wei_studio_token') || '';
+var platformUser = null;
+try { platformUser = JSON.parse(localStorage.getItem('wei_studio_user') || 'null'); } catch(e) {}
+var currentWorkId = null;       // 目前載入/儲存中的雲端作品 id
+var profileSaveTimer = null;
+var autoSaveTimer = null;
+
+async function papi(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (platformToken) headers['Authorization'] = 'Bearer ' + platformToken;
+  const r = await fetch(PLATFORM_API + path, {
+    method: opts.method || 'GET',
+    headers,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  if (r.status === 401 && path !== '/api/auth/login') {
+    platformClearSession();
+    throw new Error('登入已過期，請重新登入');
+  }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.message || data.error || ('HTTP ' + r.status));
+  return data;
+}
+
+function platformClearSession() {
+  platformToken = '';
+  platformUser = null;
+  currentWorkId = null;
+  localStorage.removeItem('wei_studio_token');
+  localStorage.removeItem('wei_studio_user');
+  renderCloudState();
+}
+
+function isOwnerRole() { return platformUser && platformUser.role === 'owner'; }
+
+// ─── 登入 / 登出 ────────────────────────────────────────────
+function showLogin() {
+  document.getElementById('login-overlay').classList.remove('is-hidden');
+  setTimeout(() => document.getElementById('login-email').focus(), 50);
+}
+function skipLogin() {
+  document.getElementById('login-overlay').classList.add('is-hidden');
+  localStorage.setItem('wei_studio_skip_login', '1');
+}
+async function platformLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-err');
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { err.textContent = '請輸入 Email 和密碼'; return; }
+  btn.disabled = true; btn.textContent = '登入中…'; err.textContent = '';
+  try {
+    const r = await papi('/api/auth/login', { method: 'POST', body: { email, password } });
+    platformToken = r.data.token;
+    platformUser = { email: r.data.email, name: r.data.name, role: r.data.role };
+    localStorage.setItem('wei_studio_token', platformToken);
+    localStorage.setItem('wei_studio_user', JSON.stringify(platformUser));
+    localStorage.removeItem('wei_studio_skip_login');
+    document.getElementById('login-overlay').classList.add('is-hidden');
+    document.getElementById('login-password').value = '';
+    showToast('歡迎回來，' + platformUser.name);
+    platformInit();
+  } catch (e) {
+    err.textContent = /invalid_credentials/.test(e.message) ? 'Email 或密碼錯誤' : ('登入失敗：' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '登入';
+  }
+}
+function platformLogout() {
+  platformClearSession();
+  showToast('已登出');
+}
+
+// ─── 雲端面板狀態 ────────────────────────────────────────────
+function renderCloudState() {
+  const loggedIn = !!platformToken;
+  document.getElementById('cloud-logged-out').classList.toggle('is-hidden', loggedIn);
+  document.getElementById('cloud-logged-in').classList.toggle('is-hidden', !loggedIn);
+  if (loggedIn && platformUser) {
+    document.getElementById('cloud-username').textContent = platformUser.name;
+    document.getElementById('admin-section').classList.toggle('is-hidden', !isOwnerRole());
+    document.getElementById('publish-template-btn').classList.toggle('is-hidden', !isOwnerRole());
+  }
+  if (typeof updateAIKeyStatus === 'function') updateAIKeyStatus();
+}
+
+async function platformInit() {
+  renderCloudState();
+  if (!platformToken) return;
+  // 平行載入：品牌檔案 / 作品 / 模板 /（owner）管理
+  loadCloudProfile();
+  refreshWorks();
+  refreshTemplates();
+  if (isOwnerRole()) refreshAdmin();
+}
+
+// ─── 品牌檔案（自動帶入 + 自動儲存） ─────────────────────────
+async function loadCloudProfile() {
+  try {
+    const r = await papi('/api/studio/profile');
+    const p = r.data || {};
+    if (p.brand_name) document.getElementById('brand-name').value = p.brand_name;
+    if (p.brand_handle) document.getElementById('brand-handle').value = p.brand_handle;
+    if (p.default_theme && p.default_theme !== currentTheme) selectTheme(p.default_theme);
+    saveBrand();
+  } catch (e) { console.warn('[platform] profile load failed:', e.message); }
+}
+function queueProfileSave() {
+  if (!platformToken) return;
+  clearTimeout(profileSaveTimer);
+  profileSaveTimer = setTimeout(async () => {
+    try {
+      const b = getBrand();
+      await papi('/api/studio/profile', { method: 'PATCH', body: {
+        brand_name: b.name, brand_handle: b.handle, default_theme: currentTheme,
+      }});
+    } catch (e) { console.warn('[platform] profile save failed:', e.message); }
+  }, 1200);
+}
+document.getElementById('brand-name').addEventListener('input', queueProfileSave);
+document.getElementById('brand-handle').addEventListener('input', queueProfileSave);
+// 換主題也記到品牌檔案
+const _platformOrigSelectTheme = selectTheme;
+selectTheme = function(theme) { _platformOrigSelectTheme(theme); queueProfileSave(); };
+
+// ─── 作品庫 ────────────────────────────────────────────────
+function fmtTime(ms) {
+  const d = new Date(ms);
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function workTitleFromContent() {
+  try {
+    const c = JSON.parse($raw.value || '{}');
+    const t = (c.s1 && c.s1.titleLines || []).join('').trim();
+    if (t) return t.slice(0, 40);
+  } catch(e) {}
+  return '未命名輪播 ' + fmtTime(Date.now());
+}
+async function refreshWorks() {
+  if (!platformToken) return;
+  const el = document.getElementById('works-list');
+  try {
+    const r = await papi('/api/studio/works');
+    const rows = r.data || [];
+    if (!rows.length) { el.innerHTML = '<div class="cloud-empty">還沒有作品。按「💾 儲存作品」存第一篇。</div>'; return; }
+    el.innerHTML = rows.map(w => `
+      <div class="cloud-row${w.id===currentWorkId?' is-current':''}" data-id="${w.id}">
+        <div class="cloud-row-main" onclick="loadWork(${w.id})" title="載入這篇">
+          <div class="cloud-row-title">${esc(w.title)}</div>
+          <div class="cloud-row-meta">${esc(w.owner)} ・ ${esc(w.theme)} ・ ${fmtTime(w.updated_at)}</div>
+        </div>
+        <button class="cloud-mini-btn" onclick="deleteWork(${w.id})" title="刪除">✕</button>
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = '<div class="cloud-empty">載入失敗：' + esc(e.message) + '</div>';
+  }
+}
+async function saveWorkToCloud(asNew) {
+  if (!platformToken) { showLogin(); return; }
+  const content = ($raw.value || '').trim();
+  if (!content || content === '{}') { showToast('沒有內容可儲存 — 先生成輪播', true); return; }
+  try { JSON.parse(content); } catch(e) { showToast('JSON 格式有誤，無法儲存', true); return; }
+  const body = {
+    title: workTitleFromContent(),
+    theme: currentTheme,
+    keyword: ($keyword.value || '').trim(),
+    tool: ($tool.value || '').trim(),
+    content,
+  };
+  try {
+    if (currentWorkId && !asNew) {
+      await papi('/api/studio/works/' + currentWorkId, { method: 'PATCH', body });
+      showToast('☁ 作品已更新');
+    } else {
+      const r = await papi('/api/studio/works', { method: 'POST', body });
+      currentWorkId = r.data.id;
+      showToast('☁ 已存到雲端');
+    }
+    refreshWorks();
+  } catch (e) { showToast('儲存失敗：' + e.message, true); }
+}
+async function loadWork(id) {
+  try {
+    const r = await papi('/api/studio/works/' + id);
+    const w = r.data;
+    $raw.value = w.content;
+    if (w.keyword) $keyword.value = w.keyword;
+    if (w.tool) $tool.value = w.tool;
+    currentWorkId = w.id;
+    if (w.theme && w.theme !== currentTheme) _platformOrigSelectTheme(w.theme);
+    generate();
+    refreshWorks();
+    showToast('已載入「' + w.title + '」');
+  } catch (e) { showToast('載入失敗：' + e.message, true); }
+}
+async function deleteWork(id) {
+  if (!confirm('確定刪除這篇作品？（無法復原）')) return;
+  try {
+    await papi('/api/studio/works/' + id, { method: 'DELETE' });
+    if (currentWorkId === id) currentWorkId = null;
+    refreshWorks();
+    showToast('已刪除');
+  } catch (e) { showToast('刪除失敗：' + e.message, true); }
+}
+// 自動儲存：載入中的雲端作品在重新生成後 3 秒自動回存
+function queueAutoSave() {
+  if (!platformToken || !currentWorkId) return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveWorkToCloud(false), 3000);
+}
+
+// ─── 模板庫 ────────────────────────────────────────────────
+async function refreshTemplates() {
+  if (!platformToken) return;
+  const el = document.getElementById('templates-list');
+  try {
+    const r = await papi('/api/studio/templates');
+    const rows = r.data || [];
+    if (!rows.length) { el.innerHTML = '<div class="cloud-empty">主任還沒發佈模板。</div>'; return; }
+    el.innerHTML = rows.map(t => `
+      <div class="cloud-row" data-tid="${t.id}">
+        <div class="cloud-row-main" onclick="applyTemplate(${t.id})" title="套用模板">
+          <div class="cloud-row-title">📐 ${esc(t.title)}</div>
+          <div class="cloud-row-meta">${esc(t.description || t.created_by)} ・ ${fmtTime(t.updated_at)}</div>
+        </div>
+        ${isOwnerRole() ? `<button class="cloud-mini-btn" onclick="deleteTemplate(${t.id})" title="刪除">✕</button>` : ''}
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = '<div class="cloud-empty">載入失敗：' + esc(e.message) + '</div>';
+  }
+}
+async function applyTemplate(id) {
+  try {
+    const r = await papi('/api/studio/templates/' + id);
+    $raw.value = r.data.content;
+    currentWorkId = null; // 套模板 = 新作品，避免覆寫原作品
+    generate();
+    showToast('已套用「' + r.data.title + '」— 改完記得按「💾 儲存作品」');
+  } catch (e) { showToast('套用失敗：' + e.message, true); }
+}
+async function publishTemplate() {
+  const content = ($raw.value || '').trim();
+  if (!content || content === '{}') { showToast('沒有內容可發佈', true); return; }
+  const title = prompt('模板名稱：', workTitleFromContent());
+  if (!title) return;
+  const description = prompt('一句話說明（夥伴會看到）：', '') || '';
+  try {
+    await papi('/api/studio/templates', { method: 'POST', body: { title, description, content } });
+    refreshTemplates();
+    showToast('📐 模板已發佈');
+  } catch (e) { showToast('發佈失敗：' + e.message, true); }
+}
+async function deleteTemplate(id) {
+  if (!confirm('確定刪除這個模板？')) return;
+  try {
+    await papi('/api/studio/templates/' + id, { method: 'DELETE' });
+    refreshTemplates();
+    showToast('已刪除模板');
+  } catch (e) { showToast('刪除失敗：' + e.message, true); }
+}
+
+// ─── 管理後台（owner） ──────────────────────────────────────
+async function refreshAdmin() {
+  if (!isOwnerRole()) return;
+  const el = document.getElementById('admin-summary');
+  try {
+    const r = await papi('/api/studio/admin/summary');
+    const works = r.data.works || [];
+    const ai = r.data.ai_30d || [];
+    const byOwner = {};
+    works.forEach(w => { byOwner[w.owner] = byOwner[w.owner] || {}; byOwner[w.owner].works = w.n; byOwner[w.owner].last = w.last; });
+    ai.forEach(a => { byOwner[a.owner] = byOwner[a.owner] || {}; byOwner[a.owner].ai = a.n; byOwner[a.owner].last = Math.max(byOwner[a.owner].last || 0, a.last); });
+    const names = Object.keys(byOwner);
+    if (!names.length) { el.innerHTML = '<div class="cloud-empty">還沒有夥伴使用紀錄。</div>'; return; }
+    el.innerHTML = names.map(n => `
+      <div class="cloud-row">
+        <div class="cloud-row-main" onclick="viewPartnerWorks('${esc(n)}')" title="看 ${esc(n)} 的作品">
+          <div class="cloud-row-title">${esc(n)}</div>
+          <div class="cloud-row-meta">作品 ${byOwner[n].works || 0} ・ AI ${byOwner[n].ai || 0} 次/30天 ・ ${byOwner[n].last ? fmtTime(byOwner[n].last) : '—'}</div>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = '<div class="cloud-empty">載入失敗：' + esc(e.message) + '</div>';
+  }
+}
+async function viewPartnerWorks(owner) {
+  const el = document.getElementById('works-list');
+  try {
+    const r = await papi('/api/studio/works?owner=' + encodeURIComponent(owner));
+    const rows = r.data || [];
+    el.innerHTML = '<div class="cloud-empty">📂 ' + esc(owner) + ' 的作品（<a style="color:var(--accent);cursor:pointer" onclick="refreshWorks()">回我的作品</a>）</div>' +
+      (rows.length ? rows.map(w => `
+      <div class="cloud-row" data-id="${w.id}">
+        <div class="cloud-row-main" onclick="loadWork(${w.id})" title="載入這篇">
+          <div class="cloud-row-title">${esc(w.title)}</div>
+          <div class="cloud-row-meta">${esc(w.theme)} ・ ${fmtTime(w.updated_at)}</div>
+        </div>
+      </div>`).join('') : '<div class="cloud-empty">沒有作品</div>');
+    document.getElementById('works-list').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) { showToast('載入失敗：' + e.message, true); }
+}
+
+// ─── 平台 AI（依品牌檔案調整身份） ───────────────────────────
+function platformSystemPrompt() {
+  const b = getBrand();
+  let p = SYSTEM_PROMPT;
+  if (b.name && b.name !== '韋總裁') {
+    p = p
+      .replace('你是韋總裁（吳昌韋）的個人內容寫手。', '你是「' + b.name + '」的個人內容寫手。')
+      .replace('韋總裁是富邦人壽業務主任，IG @changw_0331，用個人品牌經營保險與財務諮詢。',
+               b.name + ' 是富邦人壽業務員，IG ' + (b.handle || '') + '，用個人品牌經營保險與財務諮詢。')
+      .replace('品牌核心句：「真誠才是必殺技」。', '')
+      .replace('韋總裁人設細節（從業 5 年、做過 100 個諮詢）這類話可用', '不要編造任何個人經歷數字（年資、客戶數）')
+      .replace('# 韋總裁聲音規則', '# 聲音規則')
+      .replace('**絕對不要把品牌 slogan「真誠才是必殺技」放入任何 titleLines / 標題** — 那是品牌標語，不是內容', '**絕對不要放品牌 slogan 進 titleLines / 標題**');
+  }
+  return p;
+}
+async function platformAIGenerate(text) {
+  const r = await papi('/api/studio/ai', { method: 'POST', body: { system: platformSystemPrompt(), text } });
+  const q = document.getElementById('cloud-quota');
+  if (q && r.data.remaining != null) q.textContent = 'AI 今日剩餘 ' + r.data.remaining + ' 次 ・ ' + (r.data.provider || '');
+  return r.data.reply;
+}
+
+// ─── 進場 ──────────────────────────────────────────────────
+(function platformBoot() {
+  renderCloudState();
+  if (platformToken) {
+    platformInit();
+  } else if (!localStorage.getItem('wei_studio_skip_login')) {
+    showLogin();
+  }
+})();
 </script>
 </body>
 </html>
