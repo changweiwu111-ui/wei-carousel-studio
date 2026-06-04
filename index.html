@@ -3822,6 +3822,13 @@ async function smartGenerate() {
     if (aiText) {
       try {
         json = extractJSON(aiText);
+        // 後端對離題輸入（要 AI 翻譯/寫程式/聊天）會回 {"error":"off_topic"}
+        if (json && json.error === 'off_topic') {
+          setStatus('這段內容看起來不是保險／理財主題，AI 只負責寫輪播', true);
+          showToast('請貼保險／理財相關的主題或草稿', true);
+          btn.disabled = false; btn.textContent = orig;
+          return;
+        }
       } catch (e) {
         const errMsg = 'AI 回應 JSON 解析失敗：' + (e.message || e).slice(0, 100);
         console.error('[AI] extractJSON 失敗。原文（前 500 字）:', aiText.slice(0, 500));
@@ -4094,6 +4101,11 @@ function platformClearSession() {
 }
 
 function isOwnerRole() { return platformUser && platformUser.role === 'owner'; }
+// 審查共識修正（XSS）：inline onclick 帶字串參數時，用 JSON.stringify 產生合法 JS 字串字面，
+// 再做 HTML attribute escape。esc() 只 escape &<>，不足以安全放進雙引號屬性內的 JS 字串。
+function attrJs(v) {
+  return JSON.stringify(String(v)).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
 
 // ─── 登入 / 登出 ────────────────────────────────────────────
 function showLogin() {
@@ -4336,7 +4348,7 @@ async function refreshAdmin() {
     if (!names.length) { el.innerHTML = '<div class="cloud-empty">還沒有夥伴使用紀錄。</div>'; return; }
     el.innerHTML = names.map(n => `
       <div class="cloud-row">
-        <div class="cloud-row-main" onclick="viewPartnerWorks('${esc(n)}')" title="看 ${esc(n)} 的作品">
+        <div class="cloud-row-main" onclick="viewPartnerWorks(${attrJs(n)})" title="看 ${esc(n)} 的作品">
           <div class="cloud-row-title">${esc(n)}</div>
           <div class="cloud-row-meta">作品 ${byOwner[n].works || 0} ・ AI ${byOwner[n].ai || 0} 次/30天 ・ ${byOwner[n].last ? fmtTime(byOwner[n].last) : '—'}</div>
         </div>
@@ -4362,24 +4374,12 @@ async function viewPartnerWorks(owner) {
   } catch (e) { showToast('載入失敗：' + e.message, true); }
 }
 
-// ─── 平台 AI（依品牌檔案調整身份） ───────────────────────────
-function platformSystemPrompt() {
-  const b = getBrand();
-  let p = SYSTEM_PROMPT;
-  if (b.name && b.name !== '韋總裁') {
-    p = p
-      .replace('你是韋總裁（吳昌韋）的個人內容寫手。', '你是「' + b.name + '」的個人內容寫手。')
-      .replace('韋總裁是富邦人壽業務主任，IG @changw_0331，用個人品牌經營保險與財務諮詢。',
-               b.name + ' 是富邦人壽業務員，IG ' + (b.handle || '') + '，用個人品牌經營保險與財務諮詢。')
-      .replace('品牌核心句：「真誠才是必殺技」。', '')
-      .replace('韋總裁人設細節（從業 5 年、做過 100 個諮詢）這類話可用', '不要編造任何個人經歷數字（年資、客戶數）')
-      .replace('# 韋總裁聲音規則', '# 聲音規則')
-      .replace('**絕對不要把品牌 slogan「真誠才是必殺技」放入任何 titleLines / 標題** — 那是品牌標語，不是內容', '**絕對不要放品牌 slogan 進 titleLines / 標題**');
-  }
-  return p;
-}
+// ─── 平台 AI（system prompt 由後端寫死，前端只送身份變數 + 主題） ──────
 async function platformAIGenerate(text) {
-  const r = await papi('/api/studio/ai', { method: 'POST', body: { system: platformSystemPrompt(), text } });
+  const b = getBrand();
+  const r = await papi('/api/studio/ai', { method: 'POST', body: {
+    brandName: b.name, brandHandle: b.handle, text,
+  }});
   const q = document.getElementById('cloud-quota');
   if (q && r.data.remaining != null) q.textContent = 'AI 今日剩餘 ' + r.data.remaining + ' 次 ・ ' + (r.data.provider || '');
   return r.data.reply;
