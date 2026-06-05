@@ -652,7 +652,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">PLATFORM ・ v4.0</div>
+          <div class="brand-sub">PLATFORM ・ v4.1</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -1156,11 +1156,12 @@ function footer(p, n, total, cat, brand) {
 
 // v3.27 ・ 給 S2-S7 用的低透明度背景圖層
 function pageBg(d, ctx, pageIdx, theme) {
+  // v4.1 ・ 對齊韋總裁發布版型：內頁乾淨（只留 grain），不自動注入背景圖。
+  // 只有該 slide 明確指定 image 時才放（維持手動控制權）。
+  if (!d || !d.image || !/^https?:\/\//.test(d.image)) return '';
   const dk = theme === 'ink' || theme === 'noir';
-  const img = resolvePageImage(d, ctx, pageIdx);
   const op = dk ? 0.08 : 0.06;
-  const fb = 'https://picsum.photos/seed/' + encodeURIComponent('p'+pageIdx+(ctx?.allText||'').slice(0,20)) + '/1080/1350';
-  return `<img src="${img}" alt="" onerror="this.onerror=null;this.src='${fb}';" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${op};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0;pointer-events:none">`;
+  return `<img src="${d.image}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${op};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0;pointer-events:none">`;
 }
 
 // v3.27 ・ 主題關鍵字 → Unsplash 圖片對應表（精選公開圖）
@@ -1540,18 +1541,18 @@ function S1(d, theme, ctx, brand) {
   const thinC = dk ? 'rgba(255,255,255,.12)' : 'rgba(28,28,30,.10)';
   const img = resolveCoverImage(d, ctx);
   const rgb = theme==='ink'?'26,39,68':theme==='noir'?'14,14,18':theme==='paper'?'250,250,248':'245,241,232';
-  // v3.30：圖片更明顯，gradient 對標題區半透明保護
+  // v4.1：對齊韋總裁發布版（engine v3）的低調背景：圖淡、漸層穩
   const grad = dk
-    ? `linear-gradient(to bottom,rgba(${rgb},.20),rgba(${rgb},.02) 30%,rgba(${rgb},.35) 65%,rgba(${rgb},.82))`
-    : `linear-gradient(to bottom,rgba(${rgb},.05),rgba(${rgb},.0) 30%,rgba(${rgb},.25) 65%,rgba(${rgb},.72))`;
+    ? `linear-gradient(to bottom,rgba(${rgb},.30),rgba(${rgb},.05) 35%,rgba(${rgb},.45) 70%,rgba(${rgb},.88))`
+    : `linear-gradient(to bottom,rgba(${rgb},.10),rgba(${rgb},.0) 35%,rgba(${rgb},.30) 70%,rgba(${rgb},.78))`;
   const metaText = d.meta || d.eyebrow || '';
   const imgFallback = 'https://picsum.photos/seed/' + encodeURIComponent(_coverSeed(d)) + '/1080/1350';
 
   return `<div class="sl" style="background:${p.bg}">
-    <img src="${img}" alt="" onerror="this.onerror=null;this.src='${imgFallback}';" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${dk?'.28':'.24'};mix-blend-mode:${dk?'luminosity':'multiply'};z-index:0;pointer-events:none">
+    <img src="${img}" alt="" onerror="this.onerror=null;this.src='${imgFallback}';" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${dk?'.18':'.13'};mix-blend-mode:${dk?'luminosity':'multiply'};filter:${dk?'none':'grayscale(1)'};z-index:0;pointer-events:none">
     <div style="position:absolute;inset:0;z-index:1;background:${grad}"></div>
     <div style="position:absolute;top:38px;right:38px;width:32px;height:32px;border-top:.5px solid ${cornerC};border-right:.5px solid ${cornerC};z-index:2;pointer-events:none"></div>
-    <div style="position:absolute;bottom:88px;right:32px;width:24px;height:24px;border-bottom:.5px solid ${cornerC};border-right:.5px solid ${cornerC};z-index:2;pointer-events:none"></div>
+    <div style="position:absolute;bottom:38px;right:38px;width:32px;height:32px;border-bottom:.5px solid ${cornerC};border-right:.5px solid ${cornerC};z-index:2;pointer-events:none"></div>
     <div style="position:absolute;top:50%;right:40px;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:2;pointer-events:none">
       <div style="width:2.5px;height:2.5px;border-radius:50%;background:${dotC}.22)"></div>
       <div style="width:2px;height:2px;border-radius:50%;background:${dotC}.14)"></div>
@@ -1803,22 +1804,22 @@ const SLIDE_CSS = `
   .mono { font-family:'JetBrains Mono',monospace; letter-spacing:.12em; }
   .bold { font-weight:700; }
   .top-rule { position:absolute; top:0; left:56px; right:56px; display:flex; justify-content:space-between; align-items:center; padding:36px 0 14px; font-size:9px; border-bottom:.5px solid; z-index:4; }
-  .footer { position:absolute; bottom:0; left:0; right:0; padding:24px 56px 32px; display:flex; justify-content:space-between; align-items:flex-end; z-index:10; pointer-events:none; }
+  .footer { position:absolute; bottom:36px; left:56px; right:56px; display:flex; justify-content:space-between; align-items:flex-end; z-index:10; pointer-events:none; }
   .wm { display:flex; flex-direction:column; gap:2px; }
   .wm-name { font-family:'Noto Serif TC',serif; font-size:11px; font-weight:500; letter-spacing:.10em; }
   .wm-handle { font-size:9px; letter-spacing:.04em; opacity:.9; }
   .pg { font-size:9px; align-self:flex-end; }
-  .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:56px 56px 120px; z-index:3; }
+  /* v4.1 ・ 套用韋總裁輪播作品集米色雜誌版型（engine v3 發布版比例，px÷5.6→cqi） */
+  .cover-v2 { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:68px 56px 96px; z-index:3; }
   .cover-v2-meta { font-size:11px; letter-spacing:.09em; }
   .cover-v2-bar { width:28px; height:1.5px; margin:12px 0 24px; }
-  /* v3.31：縮 2pt，字距不動，嚴禁詞中斷句 */
-  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(15px, 5.2cqi, 25px); font-weight:900; letter-spacing:.08em; line-height:1.42; max-width:100%; width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
+  .cover-v2-title { font-family:'Noto Serif TC',serif; font-size:clamp(17px, 5.36cqi, 30px); font-weight:900; letter-spacing:.05em; line-height:1.55; max-width:100%; width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
   .cover-v2-title > div { max-width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; white-space:normal; }
   .cover-v2-thin { width:40px; height:.5px; margin:22px 0 20px; }
-  .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:clamp(11px, 2.5cqi, 13px); line-height:2.0; letter-spacing:.04em; }
-  .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:48px 56px 120px; z-index:3; text-align:center; align-items:center; }
+  .cover-v2-body { font-family:'Noto Serif TC',serif; font-size:clamp(11px, 2.32cqi, 13px); line-height:2.1; letter-spacing:.04em; }
+  .spread { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:90px 56px 96px; z-index:3; text-align:center; align-items:center; }
   .spread-left { text-align:left; align-items:flex-start; }
-  .spread-title { font-size:clamp(16px, 5.8cqi, 28px); font-weight:900; line-height:1.32; letter-spacing:.06em; margin-bottom:10px; max-width:100%; width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
+  .spread-title { font-size:clamp(17px, 5.72cqi, 32px); font-weight:900; line-height:1.32; letter-spacing:.03em; margin-bottom:8px; max-width:100%; width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
   .spread-title > div { max-width:100%; word-break:keep-all; overflow-wrap:break-word; line-break:strict; white-space:normal; }
   .spread-deck { font-size:15px; line-height:1.7; letter-spacing:.03em; margin-bottom:22px; font-family:'Noto Serif TC',serif; font-weight:500; }
   .spread-rule { width:36px; height:.5px; margin-bottom:22px; }
@@ -1828,24 +1829,24 @@ const SLIDE_CSS = `
   .excerpt { display:flex; gap:18px; padding:14px 0; align-items:flex-start; }
   .excerpt-no { font-size:10px; padding-top:4px; flex-shrink:0; }
   .excerpt-body { flex:1; }
-  .excerpt-q { font-size:clamp(12px, 2.9cqi, 14px); font-weight:600; line-height:1.5; letter-spacing:.02em; margin-bottom:4px; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
-  .excerpt-a { font-size:clamp(10.5px, 2.5cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .excerpt-q { font-size:clamp(12px, 2.5cqi, 14px); font-weight:600; line-height:1.5; letter-spacing:.02em; margin-bottom:4px; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .excerpt-a { font-size:clamp(10.5px, 2.15cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .excerpt-rule { width:100%; height:.5px; }
   .pivots { width:100%; text-align:left; }
-  .pivot-row { display:grid; grid-template-columns:22px 1fr 20px 1fr; gap:10px; align-items:flex-start; padding:12px 0; }
+  .pivot-row { display:grid; grid-template-columns:24px 1fr 24px 1fr; gap:14px; align-items:flex-start; padding:14px 0; }
   .pivot-no { font-size:10px; padding-top:8px; }
-  .pivot-cell { display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .pivot-cell { display:flex; flex-direction:column; gap:6px; min-width:0; }
   .pivot-label { font-size:8px; }
-  .pivot-text { font-size:clamp(10.5px, 2.5cqi, 12.5px); line-height:1.45; letter-spacing:.01em; word-break:break-word; overflow-wrap:anywhere; line-break:loose; hyphens:auto; }
+  .pivot-text { font-size:clamp(11px, 2.32cqi, 13px); line-height:1.45; letter-spacing:.02em; word-break:break-word; overflow-wrap:anywhere; line-break:loose; hyphens:auto; }
   .pivot-text.bold { font-weight:700; }
-  .pivot-arrow { font-size:16px; padding-top:20px; text-align:center; font-family:'JetBrains Mono',monospace; }
+  .pivot-arrow { font-size:18px; padding-top:24px; text-align:center; font-family:'JetBrains Mono',monospace; }
   .pivot-rule { width:100%; height:.5px; }
   .protocols { width:100%; }
-  .protocol-step { display:grid; grid-template-columns:38px 1fr auto; gap:14px; align-items:baseline; padding:12px 0; }
-  .protocol-num { font-size:clamp(18px, 4cqi, 22px); font-weight:900; line-height:1; letter-spacing:-.02em; }
+  .protocol-step { display:grid; grid-template-columns:40px 1fr auto; gap:16px; align-items:baseline; padding:14px 0; }
+  .protocol-num { font-size:clamp(18px, 3.93cqi, 22px); font-weight:900; line-height:1; letter-spacing:-.02em; }
   .protocol-body { display:flex; flex-direction:column; gap:4px; min-width:0; }
-  .protocol-title { font-size:clamp(12.5px, 3cqi, 15px); font-weight:700; letter-spacing:.02em; line-height:1.4; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
-  .protocol-sub { font-size:clamp(10.5px, 2.5cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .protocol-title { font-size:clamp(12.5px, 2.68cqi, 15px); font-weight:700; letter-spacing:.02em; line-height:1.4; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .protocol-sub { font-size:clamp(10.5px, 2.15cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .protocol-note { font-size:8px; align-self:center; }
   .protocol-rule { width:100%; height:.5px; }
   /* v3.37 ・ 5/6+ 項自動緊湊：項目多時整組縮小，保持精緻不溢出 */
@@ -1873,35 +1874,34 @@ const SLIDE_CSS = `
   .data-table.xdense .data-val { font-size:12px; }
   .data-scenario { font-size:15px; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:8px; font-weight:500; }
   .data-tag { font-size:8px; margin-bottom:12px; letter-spacing:.22em; }
-  .data-hero { display:flex; align-items:baseline; gap:8px; margin-bottom:18px; flex-wrap:nowrap; }
-  /* v3.32：縮 8px、強制單行不換、autoFit 會再縮 */
-  .data-big { font-size:clamp(36px, 11cqi, 72px); font-weight:900; line-height:1; letter-spacing:-.01em; font-feature-settings:'lnum' 1, 'tnum' 1; white-space:nowrap; }
-  .data-unit { font-size:clamp(14px, 3.8cqi, 20px); letter-spacing:.04em; font-weight:600; white-space:nowrap; line-height:1.2; }
-  .data-source { font-size:14px; font-weight:500; line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:16px; }
+  .data-hero { display:flex; align-items:baseline; gap:14px; margin-bottom:14px; flex-wrap:nowrap; }
+  .data-big { font-size:clamp(40px, 12.86cqi, 72px); font-weight:900; line-height:1; letter-spacing:-.02em; font-feature-settings:'lnum' 1, 'tnum' 1; white-space:nowrap; }
+  .data-unit { font-size:clamp(14px, 3.57cqi, 20px); letter-spacing:.03em; font-weight:600; white-space:nowrap; line-height:1.2; }
+  .data-source { font-size:clamp(13px, 2.68cqi, 15px); font-weight:500; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:22px; }
   .data-rule { width:100%; height:.5px; margin-bottom:14px; }
   .data-table { width:100%; margin-bottom:14px; }
   .data-row { display:flex; justify-content:space-between; padding:9px 0; align-items:baseline; }
   .data-label { font-size:12px; letter-spacing:.02em; }
   .data-val { font-size:14px; }
-  .data-quote { font-size:14px; line-height:1.55; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-top:4px; }
+  .data-quote { font-size:clamp(13px, 2.68cqi, 15px); line-height:1.55; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
   .lists { width:100%; }
-  .list-row { display:grid; grid-template-columns:38px 1fr; gap:14px; align-items:baseline; padding:12px 0; }
-  .list-num { font-size:clamp(18px, 4cqi, 22px); font-weight:900; line-height:1; letter-spacing:-.02em; }
+  .list-row { display:grid; grid-template-columns:40px 1fr; gap:16px; align-items:baseline; padding:14px 0; }
+  .list-num { font-size:clamp(18px, 3.93cqi, 22px); font-weight:900; line-height:1; letter-spacing:-.02em; }
   .list-body { display:flex; flex-direction:column; gap:4px; min-width:0; }
-  .list-title { font-size:clamp(12.5px, 3cqi, 15px); font-weight:700; letter-spacing:.02em; line-height:1.4; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
-  .list-sub { font-size:clamp(10.5px, 2.5cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .list-title { font-size:clamp(12.5px, 2.68cqi, 15px); font-weight:700; letter-spacing:.02em; line-height:1.4; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
+  .list-sub { font-size:clamp(10.5px, 2.15cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .list-rule { width:100%; height:.5px; }
-  .end-frame { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:40px 56px 140px; z-index:3; text-align:center; gap:2px; }
+  .end-frame { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:90px 56px 96px; z-index:3; text-align:center; }
   .end-mark { font-size:9px; letter-spacing:.4em; margin-bottom:22px; }
   .end-deck { font-size:15px; line-height:1.7; max-width:300px; margin-bottom:28px; letter-spacing:.02em; font-weight:500; }
-  .end-cta-block { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:18px; }
+  .end-cta-block { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:26px; }
   .end-cta-arrow { font-size:30px; font-weight:900; line-height:1; }
   .end-cta-headline { font-size:20px; font-weight:900; letter-spacing:.08em; }
   .end-cta-headline span { font-weight:900; }
   .end-keyword { border:1.5px solid; padding:14px 44px; letter-spacing:.14em; margin-top:4px; }
   .end-keyword .serif { font-size:36px; font-weight:900; }
   .end-cta-tail { font-size:16px; font-family:'Noto Serif TC',serif; font-weight:700; letter-spacing:.04em; margin-top:10px; }
-  .end-tool { border:.5px solid; padding:12px 20px; max-width:320px; margin-bottom:0; text-align:left; }
+  .end-tool { border:.5px solid; padding:16px 22px; max-width:320px; margin-bottom:24px; text-align:left; }
   .end-tool-label { font-size:8px; margin-bottom:8px; }
   .end-tool-name { font-size:16px; font-weight:700; letter-spacing:.02em; }
   .end-tool-sub { font-size:11px; line-height:1.6; margin-top:8px; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
