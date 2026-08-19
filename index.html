@@ -822,7 +822,7 @@
       </div>
       <div class="input-row">
         <input class="input" id="brand-name" placeholder="姓名" value="韋總裁">
-        <input class="input" id="brand-handle" placeholder="@handle" value="@changw_0331">
+        <input class="input" id="brand-handle" placeholder="@handle" value="@ceo.wei">
       </div>
     </div>
 
@@ -1144,7 +1144,7 @@ function topRule(p, n, label) {
 }
 function footer(p, n, total, cat, brand) {
   const name = (brand && brand.name) || '韋總裁';
-  const handle = (brand && brand.handle) || '@changw_0331';
+  const handle = (brand && brand.handle) || '@ceo.wei';
   return `<div class="footer">
     <div class="wm">
       <div class="wm-name" style="color:${p.mute}">${esc(name)}</div>
@@ -1993,7 +1993,7 @@ const SLIDE_CSS = `
 function buildCarouselHTML(content, keyword, toolName, theme = 'cream', brand = null) {
   if (theme === 'dark') theme = 'ink';
   if (theme === 'light') theme = 'cream';
-  brand = brand || {name:'韋總裁', handle:'@changw_0331'};
+  brand = brand || {name:'韋總裁', handle:'@ceo.wei'};
   // 收集所有 slide 內容當主題判斷依據
   const allText = [
     (content.s1?.titleLines||[]).join(' '),
@@ -2494,7 +2494,7 @@ function convertExternalFormat(j) {
     category: '',
     brand: {
       name: j.creator || '韋總裁',
-      handle: j.account || '@changw_0331',
+      handle: j.account || '@ceo.wei',
     },
     _suggested_keyword: j.trigger_word || '',
     _suggested_tool: '',
@@ -2657,7 +2657,7 @@ function uploadFile(ev) {
     // 套用品牌
     if (converted.brand) {
       document.getElementById('brand-name').value = converted.brand.name || '韋總裁';
-      document.getElementById('brand-handle').value = converted.brand.handle || '@changw_0331';
+      document.getElementById('brand-handle').value = converted.brand.handle || '@ceo.wei';
     }
     // 套用建議的 keyword / tool
     if (converted._suggested_keyword) $keyword.value = converted._suggested_keyword;
@@ -2685,7 +2685,7 @@ function selectTheme(theme) {
 function getBrand() {
   return {
     name: (document.getElementById('brand-name').value || '韋總裁').trim(),
-    handle: (document.getElementById('brand-handle').value || '@changw_0331').trim(),
+    handle: (document.getElementById('brand-handle').value || '@ceo.wei').trim(),
   };
 }
 
@@ -3059,7 +3059,7 @@ const $aiSettings = document.getElementById('ai-settings');
 const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 
 # 身份背景
-韋總裁是富邦人壽業務主任，IG @changw_0331，用個人品牌經營保險與財務諮詢。
+韋總裁是富邦人壽業務主任，IG @ceo.wei，用個人品牌經營保險與財務諮詢。
 受眾：22-45 歲有固定收入上班族（工程師、護理師、老師、律師）。
 品牌核心句：「真誠才是必殺技」。
 

@@ -96,4 +96,4 @@ node ~/Downloads/wei-carousel-studio/refresh-covers.js
 
 ---
 
-製作者：韋總裁｜吳昌韋・富邦人壽業務主任・IG @changw_0331
+製作者：韋總裁｜吳昌韋・富邦人壽業務主任・IG @ceo.wei
