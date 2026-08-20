@@ -609,7 +609,7 @@
 <div class="onboard-overlay is-hidden" id="onboard">
   <div class="onboard-card">
     <div class="onboard-title">韋總裁輪播生成器</div>
-    <div class="onboard-sub">EDITORIAL STUDIO ・ v3.2</div>
+    <div class="onboard-sub">EDITORIAL STUDIO</div>
 
     <div class="onboard-body">
       把你寫好的<strong>整段貼文</strong>、<strong>一句話主題</strong>、或<strong>條列重點</strong>貼進來，<br>
@@ -652,7 +652,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="brand-title">輪播生成器</div>
-          <div class="brand-sub">PLATFORM ・ v4.1</div>
+          <div class="brand-sub">EDITORIAL PLATFORM</div>
         </div>
         <button class="help-trigger" onclick="showOnboard()" title="重新顯示使用說明">?</button>
       </div>
@@ -2064,7 +2064,7 @@ ${content.hashtags || _topicHashtags(allText)}`;
     <button class="panel-tab" onclick="tab(1)">說明</button>
   </div>
   <div class="panel-body is-active" id="p0">${esc(ig)}</div>
-  <div class="panel-body" id="p1">v3.1 STUDIO ・ 點任意文字可直接編輯 ・ ${esc(theme.toUpperCase())}
+  <div class="panel-body" id="p1">STUDIO ・ 點任意文字可直接編輯 ・ ${esc(theme.toUpperCase())}
 EXPORT PNG：當前那張匯出 ・ EXPORT ALL：全部 7 張</div>
   <div class="panel-actions">
     <button class="panel-btn" onclick="copyPanel()">COPY</button>
@@ -3060,8 +3060,8 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 
 # 身份背景
 韋總裁是富邦人壽業務主任，IG @ceo.wei，用個人品牌經營保險與財務諮詢。
-受眾：22-45 歲有固定收入上班族（工程師、護理師、老師、律師）。
-品牌核心句：「真誠才是必殺技」。
+受眾：25-44 歲「有錢要做決定的大人」——有固定收入、手上有資產要配置的上班族（工程師、護理師、老師、律師）。不寫新手小白、學生、第一桶金題材。
+品牌核心句：「做自己的富一代」；caption 簽名句：「真誠才是必殺技」（只出現在 IG 附文 hashtag 區，不進輪播內文）。
 
 # 你的任務
 把使用者給的主題 / 重點 / 草稿，改寫成 7 張輪播 content.json，**直接輸出 JSON，包在 \`\`\`json ... \`\`\` 中，不要任何其他文字**。
@@ -3073,7 +3073,7 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 - s4 Method 解法：8 字內主標 + 2 行說明 + 3 個行動步驟（可加 NOTE 如 10MIN）
 - s5 Authority 數字：情境 + 英文 TAG + 大數字 + 單位 + 1 句說明 + 3 行對比 + 結語金句
 - s6 Proof 清單：兩行主標 + 3 個重點條目
-- s7 CTA：留言引言 + 工具描述
+- s7 CTA：留言引言 + 工具描述。工具名稱一律「○○指南」，禁用「表」「清單」「懶人包」對外稱呼。CTA 一律導「留言○○（關鍵字）」，不放連結、不寫網址——指南透過留言關鍵字自動發送
 
 # 🚫 現實感原則（絕對禁止）
 **不准編造任何具體財務數字**：保費金額、年化報酬率、利率、配息率、保額、佣金、收入數字等。
@@ -3091,7 +3091,8 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 - 用「您」（一律用「你」）
 - 用「！」表情緒（情緒靠內容）
 - 「親愛的」「朋友們」開頭
-- 通用「很多人」「不少」（要具體）
+- 通用「很多人」「不少人」「大部分人」——泛化觀察一律落到具體一個人：職業＋處境＋數字（例：34 歲工程師，帳上 80 萬放定存三年）。人物案例屬情境改編，數字用市場約略水位，不得宣稱是真實客戶或真實績效。寫不出具體人物就改觀點，不硬編
+- 文青對仗句（「你以為 X，其實 Y」這類修辭）——拆成直白因果句。檢查法：這句在吃飯聊天時講得出口嗎？講不出口就重寫。（注意：s3 的「舊觀念→新觀念」是版面結構，不受此限；「不是 A，是 B」的口語轉折照常可用）
 
 # 邏輯一致性（強制）
 1. **s5.bigNumber 必須 = s5.rows 裡 type=gold 的 val**（視覺一致）
@@ -3117,13 +3118,13 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 輸出時直接給完整 JSON，包在 \`\`\`json ... \`\`\` 中，不要任何說明文字。
 
 # 🚫 七大絕對禁止（生成前最後檢查）
-1. **絕對不要把品牌 slogan「真誠才是必殺技」放入任何 titleLines / 標題** — 那是品牌標語，不是內容
+1. **絕對不要把「做自己的富一代」「真誠才是必殺技」放入任何 titleLines / 標題** — 品牌句不是內容，兩句都一樣
 2. **絕對不要保留任何 schema placeholder 文字**：「ENGLISH」「淺顯一句」「結語金句」「主標一句話」「TAG」「placeholder」這些都是欄位提示，要替換成真實內容
 3. **每張 subtitle / 副標都要不同** — 不可以三張副標都寫類似的話。如果寫不出來、寧可留空
 4. **titleLines 每行不超過 8 個中文字** — 例：「不是賺得多就有錢」這種就太長
 5. **S4/S6 items 的 t 不可加「01 / 02 / 03」前綴** — 編號由 UI 自動加，AI 只寫純標題文字
 6. **S5.bigNumber 必須等於 type=gold 行的 val**，視覺一致性鐵則
-7. **每張只寫絕對必要的內容**，能短就短，能省就省。寫不出好內容寧可留空白`;
+7. **簡單有感受，壓過論述完整**：全篇比喻最多 1 個；一格塞不下兩個論點就砍掉一個，不縮字硬塞；每張只寫絕對必要的內容，寫不出好內容寧可留空白`;
 
 // ─── Key persistence ───────────────────────────────────────────────────────
 function loadAPIKey() {
@@ -3581,7 +3582,7 @@ async function aiGenerateAnthropic(topic, key) {
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 4000,
       system: SYSTEM_PROMPT,
       messages: [{role: 'user', content: '主題 / 文案：\n\n' + topic + '\n\n請依規格輸出完整 JSON。'}],
