@@ -1142,6 +1142,28 @@ function topRule(p, n, label) {
   // v3.12 拿掉頂部英文標籤（用戶要求乾淨版面）
   return '';
 }
+
+// v4.4 (2026-09-03) ・ S5 數字句自癒：bigNumber 含單位就拆開；unit 空就從 source 開頭切；切不出單位就不渲染大數字
+const S5_UNITS = '小時|分鐘|天|週|個月|年|歲|萬元|萬|億|元|次|倍|人|%|％';
+// S5 標題：尊重 JSON 裡的換行；沒換行且超過 11 字才在標點處切一次（不走 smartBreak，避免「一天 24／小時公司…」切歪）
+function s5Title(t) {
+  t = String(t || '').trim();
+  if (!t) return '';
+  if (!t.includes('\n') && t.length > 11) t = splitTitle(t);
+  return t.split('\n').map(l => `<div>${esc(l)}</div>`).join('');
+}
+function normalizeS5(d) {
+  let bn = String(d.bigNumber || '').trim();
+  let un = String(d.unit || '').trim();
+  let src = String(d.source || '').trim();
+  let m;
+  if (bn && (m = bn.match(/^([\d,\.]+)\s*([^\d\s,\.].*)$/))) { bn = m[1]; if (!un) un = m[2].trim(); }
+  if (bn && !un && (m = src.match(new RegExp('^(' + S5_UNITS + ')\\s*(.*)$')))) { un = m[1]; src = m[2]; }
+  src = src.replace(/^[—–\-－]{1,2}\s*/, '').replace(/^[，,、]\s*/, '');
+  if (un && bn && bn.endsWith(un)) bn = bn.slice(0, -un.length).trim();
+  if (bn && !un) bn = '';
+  return { bigNumber: bn, unit: un, source: src };
+}
 function footer(p, n, total, cat, brand) {
   const name = (brand && brand.name) || '韋總裁';
   const handle = (brand && brand.handle) || '@ceo.wei';
@@ -1455,13 +1477,13 @@ function NOIR_S5(d, ctx, brand) {
       <span class="nx-dl" style="color:${c.sub}">${esc(r.label)}</span>
       <span class="nx-dv" style="color:${c.text}">${esc(r.val)}</span>
     </div>`).join('');
-  let bn=String(d.bigNumber||'').trim(), un=String(d.unit||'').trim();
-  if(un&&bn.endsWith(un))un='';
+  const n=normalizeS5(d); const bn=n.bigNumber;
   return `<div class="sl" data-noir style="background:${c.bg}">
     ${_noirImg(d, ctx, 4, 'light')}
     <div class="nx nx-data">
+      ${d.scenario?`<div class="nx-unit" style="color:${c.sub};margin:0 0 10px">${esc(String(d.scenario).replace(/\n/g,' '))}</div>`:''}
       ${bn?`<div class="nx-big" style="color:${c.text}">${esc(bn)}</div>`:''}
-      <div class="nx-unit" style="color:${c.sub}">${esc(d.scenario||d.unit||un||'')}</div>
+      <div class="nx-unit" style="color:${c.text}">${esc(bn?(n.unit+' '+n.source):n.source)}</div>
       <div class="nx-divid" style="background:${c.line}"></div>
       <div class="nx-table ${denseCls(valid.length)}">${rows}</div>
       ${d.quote?`<div class="nx-quote" style="color:${c.em}">${nlToDiv(d.quote)}</div>`:''}
@@ -1604,16 +1626,9 @@ function S3(d, theme, ctx, brand) {
   const p = palette(theme);
   const rows = (d.pairs||[]).map((pair,i,a) => `
     <div class="pivot-row">
-      <div class="pivot-no mono" style="color:${p.dim}">${pad(i+1)}</div>
-      <div class="pivot-cell">
-        <div class="pivot-label mono" style="color:${p.dim}">OLD THINKING</div>
-        <div class="pivot-text" style="color:${p.mute};text-decoration:line-through;text-decoration-color:${p.dim};text-decoration-thickness:1px">${esc(pair.x)}</div>
-      </div>
+      <div class="pivot-text pivot-old serif" style="color:${p.mute}">${esc(pair.x)}</div>
       <div class="pivot-arrow" style="color:${p.accent}">→</div>
-      <div class="pivot-cell">
-        <div class="pivot-label mono" style="color:${p.accent}">WHAT WORKS NOW</div>
-        <div class="pivot-text bold" style="color:${p.text}">${esc(pair.o)}</div>
-      </div>
+      <div class="pivot-text pivot-new serif" style="color:${p.text}">${esc(pair.o)}</div>
     </div>
     ${i < a.length-1 ? `<div class="pivot-rule" style="background:${p.rule}"></div>` : ''}
   `).join('');
@@ -1665,49 +1680,38 @@ function S4(d, theme, ctx, brand) {
 
 function S5(d, theme, ctx, brand) {
   if (theme === 'noir') return NOIR_S5(d, ctx, brand);
+  // v4.4 (2026-09-03 Iris 定稿) ・ 4 元件：標題(scenario) → 數字句(bigNumber+unit+source 黏成一句) → 同尺對照 3 列(全左對齊、不畫刪除線) → 結語
   const p = palette(theme);
-  const rowStyle = t => t==='strike' ? `color:${p.dim};text-decoration:line-through;text-decoration-color:${p.dim}`
-                      : t==='gold'   ? `color:${p.accent};font-weight:600`
-                      :                `color:${p.mute}`;
-  // v3.33 ・ 強制過濾 row — label 或 val 任一空白就不顯示，避免「差距」row 沒值
-  const validRows = (d.rows||[]).filter(r => {
-    const lab = String(r.label||'').trim();
-    const val = String(r.val||'').trim();
-    return lab && val;
-  });
-  const rows = validRows.map((r,i,a) => `
-    <div class="data-row" style="${i<a.length-1?`border-bottom:.5px solid ${p.rule}`:''}">
-      <span class="data-label" style="color:${p.mute}">${esc(r.label)}</span>
-      <span class="data-val mono" style="${rowStyle(r.type)}">${esc(r.val)}</span>
-    </div>
-  `).join('');
+  const n = normalizeS5(d);
+  const validRows = (d.rows||[]).filter(r => String(r.label||'').trim() && String(r.val||'').trim());
+  const rows = validRows.map(r => {
+    const t = r.type === 'gold' ? 'gold' : r.type === 'dim' ? 'dim' : 'strike';
+    const lc = t === 'gold' ? p.accent : p.mute;
+    const lw = t === 'gold' ? 600 : 500;
+    const vc = t === 'strike' ? p.mute : p.text;
+    const vw = t === 'gold' ? 700 : t === 'dim' ? 500 : 400;
+    return `<div class="data-row ${t}">
+      <span class="data-label" style="color:${lc};font-weight:${lw}">${esc(r.label)}</span>
+      <span class="data-val serif" style="color:${vc};font-weight:${vw}">${esc(r.val)}</span>
+    </div>`;
+  }).join('');
+  const hero = n.bigNumber
+    ? `<div class="data-hero">
+        <span class="data-big serif" style="color:${p.accent}">${esc(n.bigNumber)}</span>
+        <div class="data-sentence serif" style="color:${p.text}"><b class="data-unit">${esc(n.unit)}</b>${esc(n.source)}</div>
+      </div>`
+    : (n.source ? `<div class="data-hero"><div class="data-sentence serif" style="color:${p.text}">${esc(n.source)}</div></div>` : '');
+  const quote = String(d.quote||'').trim();
   return `<div class="sl" style="background:${p.bg}">
     ${pageBg(d, ctx, 4, theme)}
     <div class="grain" style="opacity:${p.dark?'.07':'.05'}"></div>
     ${topRule(p,5,'BY THE NUMBERS')}
     <div class="spread spread-left">
-      <div class="data-scenario" style="color:${p.subText}">${esc(d.scenario)}</div>
-      <div class="data-tag mono" style="color:${p.accent}">${esc(d.tag)}</div>
-      ${(() => {
-        // v3.30：清理大數字 — 拿掉重複 unit、用法統一
-        let bn = String(d.bigNumber||'').trim();
-        let un = String(d.unit||'').trim();
-        if (!bn) return ''; // 空 → 不渲染
-        // 如果 bigNumber 已包含 unit（如 "67%"），就不要再顯示獨立 unit
-        if (un && bn.endsWith(un)) { un = ''; }
-        // 如果 bigNumber 結尾是 %，並 unit 是 % → 移除 unit
-        if (un === '%' && /%$/.test(bn)) un = '';
-        // 如果 bigNumber 是純數字，unit 是「萬/年/個/次」等，分開顯示
-        return `<div class="data-hero">
-          <span class="data-big serif" style="color:${p.accent}">${esc(bn)}</span>
-          ${un ? `<span class="data-unit serif" style="color:${p.subText}">${esc(un)}</span>` : ''}
-        </div>`;
-      })()}
-      <div class="data-source" style="color:${p.subText}">${esc(d.source||'')}</div>
-      <div class="data-rule" style="background:${p.rule}"></div>
-      <div class="data-table ${denseCls(validRows.length)}">${rows}</div>
-      <div class="data-rule" style="background:${p.rule}"></div>
-      <div class="data-quote serif" style="color:${p.mute}"><em>${nlToDiv(d.quote||'')}</em></div>
+      <div class="spread-title serif" style="color:${p.text}">${s5Title(d.scenario)}</div>
+      <div class="spread-rule" style="background:${p.rule}"></div>
+      ${hero}
+      <div class="data-table">${rows}</div>
+      ${quote ? `<div class="data-quote serif" style="color:${p.text};--q-rule:${p.accent}">${esc(quote)}</div>` : ''}
     </div>
     ${footer(p,5,7,ctx.category,brand)}
   </div>`;
@@ -1833,13 +1837,12 @@ const SLIDE_CSS = `
   .excerpt-a { font-size:clamp(10.5px, 2.15cqi, 12px); line-height:1.6; letter-spacing:.02em; font-family:'Noto Serif TC',serif; word-break:break-word; overflow-wrap:anywhere; line-break:loose; }
   .excerpt-rule { width:100%; height:.5px; }
   .pivots { width:100%; text-align:left; }
-  .pivot-row { display:grid; grid-template-columns:24px 1fr 24px 1fr; gap:14px; align-items:flex-start; padding:14px 0; }
-  .pivot-no { font-size:10px; padding-top:8px; }
-  .pivot-cell { display:flex; flex-direction:column; gap:6px; min-width:0; }
-  .pivot-label { font-size:8px; }
-  .pivot-text { font-size:clamp(11px, 2.32cqi, 13px); line-height:1.45; letter-spacing:.02em; word-break:break-word; overflow-wrap:anywhere; line-break:loose; hyphens:auto; }
-  .pivot-text.bold { font-weight:700; }
-  .pivot-arrow { font-size:18px; padding-top:24px; text-align:center; font-family:'JetBrains Mono',monospace; }
+  /* v4.4 ・ 去英文小標/序號/刪除線，左舊右新靠字重＋金色箭頭 */
+  .pivot-row { display:grid; grid-template-columns:1fr 32px 1fr; gap:14px; align-items:center; padding:13px 0; }
+  .pivot-text { font-size:clamp(12px, 2.5cqi, 14px); line-height:1.5; letter-spacing:.02em; min-width:0; word-break:keep-all; overflow-wrap:break-word; }
+  .pivot-old { font-weight:500; }
+  .pivot-new { font-size:clamp(13px, 2.86cqi, 16px); font-weight:700; }
+  .pivot-arrow { font-size:clamp(18px, 3.93cqi, 22px); text-align:center; line-height:1; font-family:'JetBrains Mono',monospace; }
   .pivot-rule { width:100%; height:.5px; }
   .protocols { width:100%; }
   .protocol-step { display:grid; grid-template-columns:40px 1fr auto; gap:16px; align-items:baseline; padding:14px 0; }
@@ -1866,24 +1869,18 @@ const SLIDE_CSS = `
   .lists.xdense .list-title { font-size:clamp(11.5px, 2.6cqi, 13px); line-height:1.3; }
   .lists.dense .list-sub { font-size:clamp(10px, 2.3cqi, 11.5px); line-height:1.5; }
   .lists.xdense .list-sub { font-size:clamp(9.5px, 2.2cqi, 11px); line-height:1.45; }
-  .data-table.dense .data-row { padding:7px 0; }
-  .data-table.xdense .data-row { padding:5.5px 0; }
-  .data-table.dense .data-label { font-size:11.5px; }
-  .data-table.xdense .data-label { font-size:11px; }
-  .data-table.dense .data-val { font-size:13px; }
-  .data-table.xdense .data-val { font-size:12px; }
-  .data-scenario { font-size:15px; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:8px; font-weight:500; }
-  .data-tag { font-size:8px; margin-bottom:12px; letter-spacing:.22em; }
-  .data-hero { display:flex; align-items:baseline; gap:14px; margin-bottom:14px; flex-wrap:nowrap; }
-  .data-big { font-size:clamp(40px, 12.86cqi, 72px); font-weight:900; line-height:1; letter-spacing:-.02em; font-feature-settings:'lnum' 1, 'tnum' 1; white-space:nowrap; }
-  .data-unit { font-size:clamp(14px, 3.57cqi, 20px); letter-spacing:.03em; font-weight:600; white-space:nowrap; line-height:1.2; }
-  .data-source { font-size:clamp(13px, 2.68cqi, 15px); font-weight:500; line-height:1.7; letter-spacing:.02em; font-family:'Noto Serif TC',serif; margin-bottom:22px; }
-  .data-rule { width:100%; height:.5px; margin-bottom:14px; }
-  .data-table { width:100%; margin-bottom:14px; }
-  .data-row { display:flex; justify-content:space-between; padding:9px 0; align-items:baseline; }
-  .data-label { font-size:12px; letter-spacing:.02em; }
-  .data-val { font-size:14px; }
-  .data-quote { font-size:clamp(13px, 2.68cqi, 15px); line-height:1.55; letter-spacing:.02em; font-family:'Noto Serif TC',serif; }
+  /* ─── S5 Data（v4.4 改版）─── */
+  .data-hero { display:flex; flex-wrap:wrap; align-items:baseline; column-gap:12px; row-gap:4px; margin-bottom:24px; width:100%; }
+  .data-big { font-size:clamp(36px, 10cqi, 56px); font-weight:900; line-height:1; letter-spacing:-.02em; white-space:nowrap; font-feature-settings:'lnum' 1, 'tnum' 1; }
+  .data-sentence { flex:1 1 220px; min-width:0; font-size:clamp(14px, 3.21cqi, 18px); font-weight:500; line-height:1.6; letter-spacing:.02em; word-break:keep-all; overflow-wrap:break-word; }
+  .data-sentence .data-unit { font-size:clamp(15px, 3.57cqi, 20px); font-weight:700; margin-right:6px; }
+  .data-table { display:grid; grid-template-columns:minmax(40px, max-content) 1fr; column-gap:18px; row-gap:12px; width:100%; margin-bottom:6px; }
+  .data-row { display:contents; }
+  .data-row.dim > * { margin-top:14px; }
+  .data-label { font-size:clamp(12px, 2.5cqi, 14px); letter-spacing:.04em; line-height:1.5; white-space:nowrap; }
+  .data-val { font-size:clamp(13px, 2.86cqi, 16px); letter-spacing:.01em; line-height:1.5; word-break:keep-all; overflow-wrap:break-word; }
+  .data-quote { font-size:clamp(13px, 2.68cqi, 15px); line-height:1.6; letter-spacing:.02em; font-weight:500; margin-top:22px; }
+  .data-quote::before { content:''; display:block; width:36px; height:1.5px; margin-bottom:12px; background:var(--q-rule, currentColor); }
   .lists { width:100%; }
   .list-row { display:grid; grid-template-columns:40px 1fr; gap:16px; align-items:baseline; padding:14px 0; }
   .list-num { font-size:clamp(18px, 3.93cqi, 22px); font-weight:900; line-height:1; letter-spacing:-.02em; }
@@ -2404,7 +2401,7 @@ const SAMPLE = {
   },
   s5: {
     scenario: "存了 80 萬，現在全押定存",
-    tag: "ANNUAL YIELD",
+    tag: "",
     bigNumber: "36,000",
     unit: "元 / 一 年",
     source: "如果改成三份錢配置，一年可以領這麼多利息",
@@ -2562,35 +2559,26 @@ function convertExternalFormat(j) {
         items: items.length ? items : [{t:'',s:'',note:''},{t:'',s:'',note:''},{t:'',s:'',note:''}],
       };
     } else if (num === 5) {
-      // S5 太結構化，這裡盡量保留原內容
-      const paras = body.split(/\n\s*\n/).filter(p => p.trim());
-      // 第一段：scenario / source
-      const firstLines = (paras[0] || '').split('\n');
-      const scenario = firstLines[0] || header;
-      const source = firstLines[1] || '';
-      // 第二段：對比 3 行
-      const compareLines = (paras[1] || '').split('\n').filter(l => l.trim());
+      // v4.4 ・ header 當標題；數字段「16 小時 都是你的…」拆 bigNumber/unit/source；rows 用 → 或｜切；尾行署名丟掉
+      const paras = body.split(/\n\s*\n/).map(p => p.trim()).filter(p => p && !/^韋總裁|@ceo\.wei|^@/.test(p));
+      const compIdx = paras.findIndex(p => /→|｜/.test(p));
+      const numPara = compIdx > 0 ? paras.slice(0, compIdx).join(' ') : (compIdx === -1 ? (paras[0] || '') : '');
+      const numLine = numPara.replace(/\s*\n\s*/g, ' ').trim();
+      const nm = numLine.match(new RegExp('^([\\d,\\.]+)\\s*(' + S5_UNITS + ')?\\s*(.*)$'));
+      const compareLines = (compIdx >= 0 ? paras[compIdx] : '').split('\n').filter(l => l.trim());
       const rows = [];
       compareLines.slice(0, 3).forEach((l, i) => {
-        const m = l.match(/^(.+?)\s*→\s*(.+)$/) || [null, l, ''];
-        rows.push({
-          label: (m[1] || '').trim(),
-          val: (m[2] || '').trim(),
-          type: i === 0 ? 'strike' : i === 1 ? 'gold' : 'dim',
-        });
+        const m = l.match(/^(.+?)\s*(?:→|｜)\s*(.+)$/) || [null, l, ''];
+        rows.push({ label: (m[1] || '').trim(), val: (m[2] || '').trim(), type: i === 0 ? 'strike' : i === 1 ? 'gold' : 'dim' });
       });
-      // 第三段：quote
-      const quote = (paras[2] || '').replace(/[「」"]/g, '').trim();
-      // bigNumber 從 gold row 的 val 抓數字
-      const gold = rows.find(r => r.type === 'gold');
-      const numMatch = gold ? gold.val.match(/[\d,]+/) : null;
-      const bigNumber = numMatch ? numMatch[0] : (gold ? gold.val : '');
+      const quotePara = paras.slice(compIdx + 1).find(p => /「|」/.test(p)) || (compIdx >= 0 ? paras[compIdx + 1] : paras[1]) || '';
+      const quote = quotePara.replace(/[「」"]/g, '').trim();
       out.s5 = {
-        scenario,
-        tag: 'BY THE NUMBERS',
-        bigNumber: bigNumber || '',
-        unit: '',
-        source,
+        scenario: splitTitle((header || '').trim() || numLine),
+        tag: '',
+        bigNumber: nm ? nm[1] : '',
+        unit: nm ? (nm[2] || '') : '',
+        source: nm ? nm[3] : numLine,
         rows: rows.length === 3 ? rows : [
           {label:'',val:'',type:'strike'},
           {label:'',val:'',type:'gold'},
@@ -2848,7 +2836,7 @@ function cleanupAIContent(c) {
   if (c.s3?.title) c.s3.title = compactTitle(c.s3.title, 22);
   if (c.s4?.title) c.s4.title = compactTitle(c.s4.title, 14);
   if (c.s6?.title) c.s6.title = compactTitle(c.s6.title, 22);
-  const PH = ['ENGLISH','淺顯一句','結語金句','TAG','placeholder','主標一句話','8字內主標','你的名字','標題第'];
+  const PH = ['ENGLISH','淺顯一句','結語金句','TAG','placeholder','主標一句話','8字內主標','你的名字','標題第','標題≤14字','接單位唸成一句','≤20字結論','必填'];
   const cleanStr = v => {
     if (typeof v !== 'string') return v;
     const t = v.trim();
@@ -2870,7 +2858,7 @@ function cleanupAIContent(c) {
   if (c.s5) {
     if (typeof c.s5.tag === 'string') {
       const t = c.s5.tag.trim().toUpperCase();
-      if (PH.some(p => t.includes(p.toUpperCase())) || t === 'TAG') c.s5.tag = 'BY THE NUMBERS';
+      if (PH.some(p => t.includes(p.toUpperCase())) || t === 'TAG') c.s5.tag = '';
     }
     c.s5.source = cleanStr(c.s5.source);
     c.s5.quote = cleanStr(c.s5.quote);
@@ -2911,7 +2899,7 @@ function validateContent(content) {
   if (!content || typeof content !== 'object') return ['沒有內容'];
 
   // 殘留 placeholder 偵測
-  const placeholders = ['ENGLISH', '淺顯一句', '結語金句', 'placeholder', '主標一句話', '你的名字', '8字內主標', 'TAG', '第 1 行', '第 2 行', '第 3 行'];
+  const placeholders = ['ENGLISH', '淺顯一句', '結語金句', 'placeholder', '主標一句話', '你的名字', '8字內主標', 'TAG', '第 1 行', '第 2 行', '第 3 行', '標題≤14字', '接單位唸成一句', '≤20字結論', '必填'];
   const checkStr = (val, where) => {
     if (typeof val !== 'string' || !val) return;
     placeholders.forEach(p => {
@@ -2926,8 +2914,12 @@ function validateContent(content) {
 
   // S5 結構檢查
   if (content.s5) {
-    checkStr(content.s5.tag, 'S5 tag');
     checkStr(content.s5.source, 'S5 source');
+    // v4.4：unit 空 / rows 不足 3 列 → 明講，不再靜默過濾
+    const n5 = normalizeS5(content.s5);
+    if (String(content.s5.bigNumber||'').trim() && !n5.unit) issues.push('S5 大數字沒有單位（unit 必填：小時/元/%/萬…）');
+    const okRows = (content.s5.rows||[]).filter(r => String(r.label||'').trim() && String(r.val||'').trim());
+    if (okRows.length && okRows.length < 3) issues.push(`S5 對照只有 ${okRows.length} 列（要 3 列：以前／現在／拉長）`);
     // 大數字 vs gold row 對齊
     const gold = (content.s5.rows || []).find(r => r.type === 'gold');
     if (gold && content.s5.bigNumber && gold.val) {
@@ -3071,7 +3063,15 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 - s2 Pain 痛點：兩行主標 + 1 副標 + 3 個痛點 Q/A。**這張不教東西**——s1 開完砲，讀者想的是「關我什麼事」，s2 只做兩件事之一：①演他的日常（具體到場景：發薪日轉帳、月底打開 App、扣款通知）②講看完的好處（可能性，不恐嚇）。道理、對比、步驟全部忍到 s3 以後
 - s3 Pivot 翻轉：兩行主標 + 副標 + 2 組「舊觀念 → 新觀念」
 - s4 Method 解法：8 字內主標 + 2 行說明 + 3 個行動步驟（可加 NOTE 如 10MIN）
-- s5 Authority 數字：情境 + 英文 TAG + 大數字 + 單位 + 1 句說明 + 3 行對比 + 結語金句
+- s5 數字頁（把 s3 的翻轉算成一個數，給讀者看照做之後差多少）：
+  ① scenario＝這頁標題，≤14 字，寫這筆帳的前提或問題，讀者看完就知道下面的數在算什麼
+  ② bigNumber 只放數字；unit 必填（小時/天/年/萬/%/倍…），bigNumber 已含單位就拆開
+  ③ source ≤20 字，接在單位後面唸下去要成一句（16 小時「都是你的，看你拿去想主管，還是拿去過日子」），不用破折號、不重複數字
+  ④ rows 三列＝同一個問題的三個答案、同一單位：strike＝以前/你以為的數，gold＝翻轉後真的會發生的數（＝bigNumber），dim＝差距或拉成一天/一年/十年；label ≤5 字只放「以前／現在／一年下來」這種狀態詞，val ≤12 字＝短描述＋數字收尾
+  ⑤ quote ≤20 字＝這個數字落到生活的結論，不開新觀點、不重講 s3 的道理；「要 A，不是 B」的口語轉折可用，文青對仗不准
+  ⑥ tag 留空（引擎不渲染）；不出現商品代號、不寫報酬率保證
+  ⑦ 自檢：標題→大數字一句→三列→結語連著唸，20 秒講完、講的是同一件事，唸不順就重寫
+  ⑧ 退件：unit 空／gold val 沒含 bigNumber／三列單位不同／source 接在單位後唸不通／quote 另講一個道理
 - s6 Proof 清單：兩行主標 + 3 個重點條目
 - s7 CTA：留言引言 + 工具描述。工具名稱一律「○○指南」（5–7 字），禁用「表」「清單」「懶人包」「健檢」對外稱呼。CTA 一律導「留言○○（關鍵字）」——**關鍵字固定 2 個中文字、跟主題綁、每篇專屬**（配息題→領息、房貸題→寬限），不用「+1」這種通用字。不放連結、不寫網址——指南透過留言關鍵字自動發送
 
@@ -3110,7 +3110,7 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
 - 文青對仗句（「你以為 X，其實 Y」這類修辭）——拆成直白因果句。檢查法：這句在吃飯聊天時講得出口嗎？講不出口就重寫。（注意：s3 的「舊觀念→新觀念」是版面結構，不受此限；「不是 A，是 B」的口語轉折照常可用）
 
 # 邏輯一致性（強制）
-1. **s5.bigNumber 必須 = s5.rows 裡 type=gold 的 val**（視覺一致）
+1. **s5.bigNumber 必須 = s5.rows 裡 type=gold 的 val**（視覺一致），且 unit 不得為空
 2. s2 痛點 → s3 翻轉 → s4 解法 必須環環相扣
 3. s5 數字情境要呼應 s1 主題
 4. s6 三點不能跟 s4 三點完全重複
@@ -3125,7 +3125,7 @@ const SYSTEM_PROMPT = `你是韋總裁（吳昌韋）的個人內容寫手。
   "s2": {"title":"主標1\\n主標2","subtitle":"副標","cards":[{"q":"","a":""},{"q":"","a":""},{"q":"","a":""}]},
   "s3": {"title":"主標1\\n主標2","subtitle":"副標","pairs":[{"x":"","o":""},{"x":"","o":""}]},
   "s4": {"title":"","subtitleLines":["",""],"items":[{"t":"","s":"","note":""},{"t":"","s":"","note":""},{"t":"","s":"","note":""}]},
-  "s5": {"scenario":"","tag":"ENGLISH","bigNumber":"","unit":"","source":"淺顯一句","rows":[{"label":"","val":"","type":"strike"},{"label":"","val":"","type":"gold"},{"label":"","val":"","type":"dim"}],"quote":"結語金句"},
+  "s5": {"scenario":"標題≤14字","tag":"","bigNumber":"","unit":"必填","source":"接單位唸成一句≤20字","rows":[{"label":"以前","val":"","type":"strike"},{"label":"現在","val":"","type":"gold"},{"label":"一年下來","val":"","type":"dim"}],"quote":"≤20字結論"},
   "s6": {"title":"主標1\\n主標2","items":[{"t":"","s":""},{"t":"","s":""},{"t":"","s":""}]},
   "s7": {"ctaSub":"","toolSub":""}
 }
@@ -3294,7 +3294,7 @@ function parseTextHeuristic(text) {
     s2: {title:'', subtitle:'', cards:[{q:'',a:''},{q:'',a:''},{q:'',a:''}]},
     s3: {title:'', subtitle:'', pairs:[{x:'',o:''},{x:'',o:''}]},
     s4: {title:'', subtitleLines:['',''], items:[{t:'',s:'',note:''},{t:'',s:'',note:''},{t:'',s:'',note:''}]},
-    s5: {scenario:'', tag:'BY THE NUMBERS', bigNumber:'', unit:'', source:'', rows:[{label:'',val:'',type:'strike'},{label:'',val:'',type:'gold'},{label:'',val:'',type:'dim'}], quote:''},
+    s5: {scenario:'', tag:'', bigNumber:'', unit:'', source:'', rows:[{label:'',val:'',type:'strike'},{label:'',val:'',type:'gold'},{label:'',val:'',type:'dim'}], quote:''},
     s6: {title:'', items:[{t:'',s:''},{t:'',s:''},{t:'',s:''}]},
     s7: {ctaSub:'我整理好的東西直接傳給你', toolSub:''},
   };
